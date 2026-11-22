@@ -1,0 +1,10 @@
+{
+  "port": 4841,
+  "endpoint": "opc.tcp://0.0.0.0:4841/freeopcua/server/",
+  "security_mode": "None",
+  "require_auth": false,
+  "username": "admin",
+  "password": "password123",
+  "server_name": "Industrial Gateway OPC-UA Server",
+  "enabled": true
+}

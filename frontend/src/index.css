@@ -1,0 +1,239 @@
+@import "tailwindcss";
+
+/* === UI/UX Pro Max Design System Tokens (Industrial Gateway) === */
+:root {
+  --color-primary: #1E293B;
+  --color-on-primary: #FFFFFF;
+  --color-secondary: #334155;
+  --color-on-secondary: #FFFFFF;
+  --color-accent: #22C55E;
+  --color-on-accent: #0F172A;
+  --color-background: #0F172A;
+  --color-foreground: #F8FAFC;
+  --color-card: #1B2336;
+  --color-card-foreground: #F8FAFC;
+  --color-muted: #272F42;
+  --color-muted-foreground: #94A3B8;
+  --color-border: #334155;
+  --color-destructive: #EF4444;
+  --color-ring: #22C55E;
+  --font-heading: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-body: "Fira Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --space-xs: 2px;
+  --space-sm: 4px;
+  --space-md: 8px;
+  --space-lg: 12px;
+  --space-xl: 16px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(34, 197, 94, 0.06), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 90% 10%, rgba(56, 189, 248, 0.06), transparent 60%);
+  background-attachment: fixed;
+}
+
+h1, h2, h3, .font-heading {
+  font-family: var(--font-heading);
+}
+
+/* Glassmorphism industrial panel */
+.glass-panel {
+  background: rgba(27, 35, 54, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+/* Focus accessibility ring */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Dark sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0B1120;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Live value flash animation */
+@keyframes flash {
+  0% { background-color: rgba(34, 197, 94, 0.22); }
+  100% { background-color: transparent; }
+}
+.value-flash {
+  animation: flash 0.55s ease-out;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* === Unified Industrial Dark Tech Surface Mapping (High-Contrast & Eye-Friendly) === */
+#root .bg-white,
+#root .bg-white\/95 {
+  background-color: #162033 !important;
+  color: #F1F5F9 !important;
+}
+#root .bg-gray-50,
+#root .bg-gray-50\/30,
+#root .bg-gray-50\/50,
+#root .bg-gray-50\/60,
+#root .bg-gray-50\/70,
+#root .bg-gray-50\/80 {
+  background-color: #11192A !important;
+}
+#root .bg-gray-100 {
+  background-color: #1E293B !important;
+}
+#root .bg-gray-200 {
+  background-color: #334155 !important;
+}
+#root .hover\:bg-gray-50:hover,
+#root .hover\:bg-gray-100:hover,
+#root .hover\:bg-gray-200:hover {
+  background-color: #273449 !important;
+}
+#root .hover\:bg-blue-50\/40:hover {
+  background-color: rgba(56, 189, 248, 0.1) !important;
+}
+
+#root .from-blue-50\/60,
+#root .from-blue-50\/70,
+#root .to-gray-50\/60 {
+  --tw-gradient-from: #131C2E !important;
+  --tw-gradient-to: #162033 !important;
+}
+
+#root .border-gray-100,
+#root .border-gray-200,
+#root .border-gray-300 {
+  border-color: rgba(71, 85, 105, 0.6) !important;
+}
+#root .divide-gray-100 > *,
+#root .divide-gray-200 > * {
+  border-color: rgba(51, 65, 85, 0.55) !important;
+}
+
+#root .text-gray-900,
+#root .text-gray-800 {
+  color: #F1F5F9 !important;
+}
+#root .text-gray-700 {
+  color: #E2E8F0 !important;
+}
+#root .text-gray-600 {
+  color: #CBD5E1 !important;
+}
+#root .text-gray-500,
+#root .text-gray-400 {
+  color: #94A3B8 !important;
+}
+
+/* Eye-friendly high-contrast semantic pills & toolbar buttons on dark surfaces (WCAG AAA) */
+#root .bg-amber-50,
+#root .bg-amber-50\/50 { background-color: rgba(245, 158, 11, 0.16) !important; }
+#root .hover\:bg-amber-100:hover { background-color: rgba(245, 158, 11, 0.28) !important; }
+#root .border-amber-200 { border-color: rgba(245, 158, 11, 0.38) !important; }
+#root .text-amber-800,
+#root .text-amber-700,
+#root .text-amber-600 { color: #FDE68A !important; }
+
+#root .bg-blue-50,
+#root .bg-blue-50\/30,
+#root .bg-blue-50\/40,
+#root .bg-blue-50\/50,
+#root .bg-blue-50\/70 { background-color: rgba(56, 189, 248, 0.16) !important; }
+#root .bg-blue-100 { background-color: rgba(56, 189, 248, 0.24) !important; }
+#root .hover\:bg-blue-100:hover { background-color: rgba(56, 189, 248, 0.28) !important; }
+#root .border-blue-200 { border-color: rgba(56, 189, 248, 0.38) !important; }
+#root .text-blue-900,
+#root .text-blue-800,
+#root .text-blue-700,
+#root .text-blue-600 { color: #BAE6FD !important; }
+
+#root .bg-green-50,
+#root .bg-green-50\/50 { background-color: rgba(34, 197, 94, 0.16) !important; }
+#root .hover\:bg-green-100:hover { background-color: rgba(34, 197, 94, 0.28) !important; }
+#root .border-green-200 { border-color: rgba(34, 197, 94, 0.38) !important; }
+#root .text-green-800,
+#root .text-green-700,
+#root .text-green-600 { color: #86EFAC !important; }
+
+#root .bg-purple-50,
+#root .bg-purple-50\/30,
+#root .bg-purple-50\/50 { background-color: rgba(168, 85, 247, 0.16) !important; }
+#root .hover\:bg-purple-100:hover { background-color: rgba(168, 85, 247, 0.28) !important; }
+#root .border-purple-200 { border-color: rgba(168, 85, 247, 0.38) !important; }
+#root .text-purple-800,
+#root .text-purple-700,
+#root .text-purple-600 { color: #E9D5FF !important; }
+
+#root .bg-cyan-50 { background-color: rgba(6, 182, 212, 0.16) !important; }
+#root .hover\:bg-cyan-100:hover { background-color: rgba(6, 182, 212, 0.28) !important; }
+#root .border-cyan-200 { border-color: rgba(6, 182, 212, 0.38) !important; }
+#root .text-cyan-800,
+#root .text-cyan-700,
+#root .text-cyan-600 { color: #A5F3FC !important; }
+
+#root .bg-indigo-50,
+#root .bg-indigo-50\/30,
+#root .bg-indigo-50\/40 { background-color: rgba(99, 102, 241, 0.18) !important; }
+#root .hover\:bg-indigo-100:hover { background-color: rgba(99, 102, 241, 0.30) !important; }
+#root .border-indigo-200 { border-color: rgba(129, 140, 248, 0.42) !important; }
+#root .text-indigo-800,
+#root .text-indigo-700,
+#root .text-indigo-600 { color: #C7D2FE !important; }
+
+#root .bg-red-50 { background-color: rgba(239, 68, 68, 0.16) !important; }
+#root .hover\:bg-red-100:hover { background-color: rgba(239, 68, 68, 0.28) !important; }
+#root .border-red-200 { border-color: rgba(248, 113, 113, 0.40) !important; }
+#root .text-red-800,
+#root .text-red-700,
+#root .text-red-600 { color: #FECACA !important; }
+
+/* Dark inputs & selects everywhere inside modals/forms */
+#root input[type="text"],
+#root input[type="number"],
+#root input[type="password"],
+#root input[type="search"],
+#root select,
+#root textarea {
+  background-color: #0F172A;
+  color: #F1F5F9;
+  border-color: #334155;
+}
+#root input::placeholder,
+#root textarea::placeholder {
+  color: #64748B;
+}

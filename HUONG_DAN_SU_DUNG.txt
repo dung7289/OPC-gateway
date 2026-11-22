@@ -1,0 +1,36 @@
+====================================================================
+   HUONG DAN SU DUNG NHANH - INDUSTRIAL GATEWAY (PORTABLE)
+====================================================================
+
+1. CHAY PHAN MEM
+   - Chay ngam (khuyen dung cho van hanh 24/7, khong cua so den):
+       Nhap dup vao file:  Start_Gateway_Hidden.vbs
+   - Chay kem cua so Log Console (dung khi kiem tra/debug ket noi):
+       Nhap dup vao file:  IndustrialGateway.exe
+   - Mo trinh duyet truy cap giao dien Web SCADA/Gateway tai:
+       http://localhost:8000
+
+2. XEM HUONG DAN VAN HANH DAY DU CHI TIET
+   - Tren Web UI: Chon muc "Huong dan SD" tren thanh ben (hoac truy cap
+     truc tiep http://localhost:8000/docs).
+   - Tai lieu offline trong thu muc phan mem:
+     Mo file HUONG_DAN_VAN_HANH.md (co the mo bang Notepad, VS Code,
+     hoac bat ky trinh doc Markdown nao).
+
+3. TU DONG KHOI DONG CUNG WINDOWS (CHAY NGAM)
+   - Truy cap menu "He thong & Sao luu" (http://localhost:8000/system)
+   - Bam nut "Bat Auto-Start chay ngam" de ghi HKCU Run Registry.
+
+4. SAO LUU CAU HINH KHI CHUYEN MAY / NANG CAP
+   - Cach 1 (Khuyen dung): Tai Backup toan bo du an dang 1 file .json
+     tai http://localhost:8000/system ("Tai Backup (.json)").
+   - Cach 2 (Copy thu cong): Copy file gateway.db, opcua_config.json,
+     forward_config.json, logger_config.json sang thu muc moi.
+
+5. CAC CONG MANG CAN LUU Y (WINDOWS FIREWALL)
+   - Web UI / REST API / WebSocket : TCP 8000 (bien GATEWAY_PORT)
+   - OPC-UA Server                 : TCP 4840 / 4841
+   - Siemens S7 PLC                : TCP 102
+   - Modbus TCP                    : TCP 502
+   - MQTT Broker                   : TCP 1883
+====================================================================

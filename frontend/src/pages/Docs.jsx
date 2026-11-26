@@ -69,9 +69,9 @@ const SECTIONS = [
   },
   {
     id: 'backup_ops',
-    label: '8. Sao lưu, Khôi phục & Bảo trì',
+    label: '8. Tài khoản, Phân quyền & Bảo trì',
     icon: HardDriveDownload,
-    keywords: 'backup restore replace merge json migrate upgrade registry hkcu run bao tri tuan thang',
+    keywords: 'login dang nhap auth rbac admin viewer phan quyen mat khau password users backup restore replace merge json migrate upgrade registry hkcu run bao tri tuan thang',
   },
   {
     id: 'api_troubleshoot',
@@ -772,14 +772,45 @@ export default function Docs() {
             </div>
           )}
 
-          {/* TAB 8: SAO LƯU, KHÔI PHỤC & BẢO TRÌ */}
+          {/* TAB 8: TÀI KHOẢN, PHÂN QUYỀN, SAO LƯU & BẢO TRÌ */}
           {effectiveTab === 'backup_ops' && (
             <div className="space-y-6">
               <SectionHeader
                 icon={HardDriveDownload}
-                title="8. Sao lưu Dự án, Di chuyển Máy & Lịch Bảo trì"
-                subtitle="Backup cấu hình một file duy nhất (.json), khôi phục an toàn và kế hoạch kiểm tra định kỳ."
+                title="8. Đăng nhập, Phân quyền (Admin / Viewer), Sao lưu & Bảo trì"
+                subtitle="Quản lý tài khoản theo vai trò (chỉ Admin được cấu hình, Viewer chỉ xem), sao lưu dự án và bảo trì định kỳ."
               />
+
+              {/* RBAC Card */}
+              <div className="bg-[#0F172A]/85 border border-emerald-500/30 rounded-xl p-5 space-y-3 text-xs text-slate-300">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+                  <h3 className="font-heading text-sm font-bold text-emerald-300">
+                    Đăng nhập &amp; Phân quyền truy cập (/login · /system)
+                  </h3>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    Mặc định: admin / admin123 · viewer / viewer123
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <div className="font-semibold text-emerald-300">1. Tài khoản Admin (Toàn quyền cấu hình)</div>
+                    <ul className="space-y-1">
+                      <li>• Tạo/sửa/xóa Kênh PLC (<code className="text-sky-300">/connections</code>), Tag (<code className="text-sky-300">/tags</code>), Scan OPC/TIA/JSON, và ghi giá trị xuống PLC.</li>
+                      <li>• Cấu hình Data Logger, OPC-UA Server, IoT Gateway, trạm USR-M100, xóa Logs, Backup/Restore và tạo/khóa/xóa tài khoản tại <code className="text-sky-300">/system</code>.</li>
+                    </ul>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="font-semibold text-sky-300">2. Tài khoản Viewer (Chỉ xem — Giám sát)</div>
+                    <ul className="space-y-1">
+                      <li>• Xem Dashboard realtime, cây thư mục Tag, biểu đồ Historian, trạng thái kênh/server, nhật ký Logs, Sổ tay vận hành và tự đổi mật khẩu cá nhân.</li>
+                      <li>• API tự động ẩn mật khẩu kết nối, chặn toàn bộ thao tác thay đổi cấu hình / ghi xuống thiết bị (<code className="text-amber-300">HTTP 403</code>) và khóa các nút chỉnh sửa trên giao diện.</li>
+                    </ul>
+                  </div>
+                </div>
+                <Callout variant="warn" title="Khuyến nghị bảo mật khi đưa vào vận hành">
+                  Hãy đăng nhập bằng <code>admin</code> và vào trang <strong>Hệ thống &amp; Sao lưu (/system)</strong> để <strong>Đổi mật khẩu</strong> ngay cho cả <code>admin</code> và <code>viewer</code> (hoặc tạo thêm tài khoản vận hành riêng). Chưa đăng nhập không thể gọi API hay WebSocket <code>/ws</code>.
+                </Callout>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-300">
                 <div className="bg-[#0F172A]/80 border border-slate-800 rounded-xl p-4 space-y-2">
@@ -855,12 +886,20 @@ export default function Docs() {
                       <td className="px-4 py-2 font-sans">Quản lý trạm vùng đệm USR-M100, publish lệnh <code className="font-mono">rw_prot</code>/<code className="font-mono">flat_json</code> và theo dõi ACK</td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-2 text-violet-300">GET /api/system/backup · POST /api/system/restore · GET/POST /api/system/autostart</td>
-                      <td className="px-4 py-2 font-sans">Sao lưu/Khôi phục JSON và bật tắt Windows Registry Auto-Start</td>
+                      <td className="px-4 py-2 text-emerald-300">POST /api/auth/login · POST /api/auth/logout · GET /api/auth/me</td>
+                      <td className="px-4 py-2 font-sans">Đăng nhập lấy Bearer Token (<code className="font-mono">Authorization: Bearer &lt;token&gt;</code>) · Lấy profile</td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-2 text-emerald-300">WS ws://&lt;host&gt;:8000/ws</td>
-                      <td className="px-4 py-2 font-sans">Nhận stream giá trị tag realtime dạng push (JSON <code className="font-mono">&#123; tag_id, value, quality, timestamp &#125;</code>)</td>
+                      <td className="px-4 py-2 text-emerald-300">POST /api/auth/change-password · GET/POST/PUT/DELETE /api/auth/users</td>
+                      <td className="px-4 py-2 font-sans">Đổi mật khẩu cá nhân · Quản lý tài khoản Admin/Viewer (chỉ Admin)</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-2 text-violet-300">GET /api/system/backup · POST /api/system/restore · GET/POST /api/system/autostart</td>
+                      <td className="px-4 py-2 font-sans">Sao lưu/Khôi phục JSON và bật tắt Windows Registry Auto-Start (chỉ Admin)</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-2 text-emerald-300">WS ws://&lt;host&gt;:8000/ws?token=&lt;token&gt;</td>
+                      <td className="px-4 py-2 font-sans">Nhận stream giá trị tag realtime dạng push (cần token đăng nhập hợp lệ)</td>
                     </tr>
                   </tbody>
                 </table>

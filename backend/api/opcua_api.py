@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import logging
 from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from core.opcua_server import OpcUaServerService
@@ -28,10 +28,13 @@ class OpcUaConfigModel(BaseModel):
 
 
 @router.get("/config")
-async def get_opcua_config():
+async def get_opcua_config(request: Request):
     """Return the current OPC-UA server configuration and status."""
     service = OpcUaServerService()
-    cfg = service.config
+    cfg = dict(service.config)
+    user = getattr(request.state, "user", None)
+    if user and user.get("role") != "admin" and cfg.get("password"):
+        cfg["password"] = "••••••"
     return {
         **cfg,
         "running": service._running,

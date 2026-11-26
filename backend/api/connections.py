@@ -15,7 +15,7 @@ import json
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from api.logs import add_log
 from core.driver_manager import DriverManager
@@ -27,13 +27,31 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/connections", tags=["connections"])
 
 
-def _row_to_response(row: dict, dm: DriverManager, stats: Optional[dict] = None) -> ConnectionResponse:
+def _mask_config_secrets(config: dict) -> dict:
+    masked = dict(config)
+    for k, v in masked.items():
+        if isinstance(v, dict):
+            masked[k] = _mask_config_secrets(v)
+        elif any(tok in str(k).lower() for tok in ("password", "secret", "token", "auth_header")):
+            if v:
+                masked[k] = "••••••"
+    return masked
+
+
+def _row_to_response(
+    row: dict,
+    dm: DriverManager,
+    stats: Optional[dict] = None,
+    mask_secrets: bool = False,
+) -> ConnectionResponse:
     """Convert a DB row dict to a ConnectionResponse with live driver status and _System stats."""
     config: dict = {}
     try:
         config = json.loads(row.get("config_json") or "{}")
     except (json.JSONDecodeError, TypeError):
         pass
+    if mask_secrets and isinstance(config, dict):
+        config = _mask_config_secrets(config)
 
     driver = dm.get_driver(row["id"])
     connected = driver.is_connected() if driver else False
@@ -63,8 +81,10 @@ def _row_to_response(row: dict, dm: DriverManager, stats: Optional[dict] = None)
 
 @router.get("", response_model=List[ConnectionResponse])
 @router.get("/", response_model=List[ConnectionResponse])
-async def list_connections():
+async def list_connections(request: Request):
     """List all connections with their current driver connection state and live tag quality counts."""
+    user = getattr(request.state, "user", None)
+    mask_secrets = bool(user and user.get("role") != "admin")
     from core.tag_engine import TagEngine
     dm = DriverManager()
     engine = TagEngine()
@@ -87,7 +107,7 @@ async def list_connections():
         else:
             st["bad"] += 1
 
-    return [_row_to_response(dict(row), dm, stats) for row in rows]
+    return [_row_to_response(dict(row), dm, stats, mask_secrets=mask_secrets) for row in rows]
 
 
 @router.post("", response_model=ConnectionResponse, status_code=201)
@@ -129,8 +149,10 @@ async def create_connection(payload: ConnectionCreate):
 
 
 @router.get("/{connection_id}", response_model=ConnectionResponse)
-async def get_connection(connection_id: int):
+async def get_connection(connection_id: int, request: Request):
     """Return details of a single connection."""
+    user = getattr(request.state, "user", None)
+    mask_secrets = bool(user and user.get("role") != "admin")
     async with get_db() as db:
         async with db.execute(
             "SELECT * FROM connections WHERE id = ?", (connection_id,)
@@ -141,7 +163,7 @@ async def get_connection(connection_id: int):
         raise HTTPException(status_code=404, detail="Connection not found")
 
     dm = DriverManager()
-    return _row_to_response(dict(row), dm)
+    return _row_to_response(dict(row), dm, mask_secrets=mask_secrets)
 
 
 @router.put("/{connection_id}", response_model=ConnectionResponse)

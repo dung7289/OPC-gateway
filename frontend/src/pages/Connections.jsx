@@ -14,6 +14,7 @@ import OpcDaBrowserModal from '../components/OpcDaBrowserModal';
 import OpcUaBrowserModal from '../components/OpcUaBrowserModal';
 import StatusBadge from '../components/StatusBadge';
 import { getProtocolColor } from '../utils/helpers';
+import useStore from '../store/useStore';
 
 function ConfirmDialog({ message, onConfirm, onCancel }) {
   return (
@@ -44,6 +45,7 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
 
 export default function Connections() {
   const queryClient = useQueryClient();
+  const isAdmin = useStore((s) => s.user?.role === 'admin');
   const [showForm, setShowForm] = useState(false);
   const [editConn, setEditConn] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -98,14 +100,16 @@ export default function Connections() {
           <h1 className="font-heading text-xl font-bold text-slate-100">Connections</h1>
           <p className="text-xs text-slate-400 mt-0.5">Quản lý kết nối PLC, Modbus, MQTT, OPC-DA & OPC-UA</p>
         </div>
-        <button
-          type="button"
-          onClick={() => { setEditConn(null); setShowForm(true); }}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-[#0F172A] text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
-        >
-          <Plus className="w-4 h-4" aria-hidden="true" />
-          Add Connection
-        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => { setEditConn(null); setShowForm(true); }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-[#0F172A] text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
+          >
+            <Plus className="w-4 h-4" aria-hidden="true" />
+            Add Connection
+          </button>
+        )}
       </div>
 
       {/* Error */}
@@ -189,6 +193,13 @@ export default function Connections() {
                       )}
                     </td>
                     <td className="px-5 py-3.5">
+                      {!isAdmin ? (
+                        <div className="flex justify-end">
+                          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700 text-slate-400">
+                            Chỉ xem
+                          </span>
+                        </div>
+                      ) : (
                       <div className="flex items-center justify-end gap-1">
                         {conn.protocol === 'mqtt' && (
                           <button
@@ -271,6 +282,7 @@ export default function Connections() {
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
+                      )}
                     </td>
                   </tr>
                 ))}

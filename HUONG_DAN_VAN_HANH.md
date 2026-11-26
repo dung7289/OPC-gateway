@@ -259,7 +259,16 @@ Dùng để sử dụng Industrial Gateway làm vùng đệm điều khiển thi
 
 ---
 
-## 10. Sao lưu, Khôi phục Dự án & Lịch Bảo trì
+## 10. Tài khoản Đăng nhập, Phân quyền, Sao lưu & Bảo trì
+
+### 10.1 Đăng nhập & Phân quyền truy cập (`/login`, `/system`)
+- Hệ thống bắt buộc đăng nhập trước khi truy cập dữ liệu hoặc WebSocket (`/ws?token=<token>`).
+- **2 vai trò mặc định:**
+  - **Admin (`admin` / mật khẩu mặc định `admin123`):** Toàn quyền cấu hình Kênh kết nối, Tag, Scan OPC/TIA/JSON, ghi giá trị xuống PLC, cấu hình Data Logger / OPC-UA / IoT Gateway / USR-M100, xóa Logs, Backup/Restore và tạo/khóa/xóa tài khoản tại `/system`.
+  - **Viewer (`viewer` / mật khẩu mặc định `viewer123`):** Chỉ xem giám sát Dashboard realtime, cây thư mục Tag, biểu đồ Historian, Log hệ thống, xuất báo cáo Excel và tự đổi mật khẩu cá nhân. Mọi API chỉnh sửa hoặc ghi xuống thiết bị bị chặn ngay từ server (`HTTP 403`) và mật khẩu kết nối được ẩn tự động.
+- **Lưu ý bảo mật:** Sau khi đăng nhập lần đầu bằng `admin`, hãy vào **`/system` (Hệ thống & Sao lưu)** để **Đổi mật khẩu** ngay cho tài khoản mặc định hoặc tạo thêm user cho từng ca vận hành.
+
+### 10.2 Sao lưu, Khôi phục Dự án & Lịch Bảo trì
 
 - **Sao lưu một chạm tại `/system`:** Nhấn **Tải Backup (.json)** để xuất toàn bộ cấu hình (kênh, thư mục, tag, OPC-UA Server, IoT Forwarder, Data Logger, trạm USR-M100 `usr_m100_config`).
 - **Khôi phục tại `/system`:** Nạp file `.json`, chọn chế độ:
@@ -275,11 +284,12 @@ Dùng để sử dụng Industrial Gateway làm vùng đệm điều khiển thi
 ## 11. REST API, WebSocket & Xử lý Sự cố Hiện trường
 
 ### 11.1 Danh sách API chính (Swagger Interactive tại `/api/docs`)
-- **Hệ thống & Tài liệu:** `GET /api/health`, `GET /api/docs` (Swagger UI), `GET /api/system/backup`, `POST /api/system/restore`, `GET/POST /api/system/autostart`.
+- **Xác thực & Tài khoản:** `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `POST /api/auth/change-password`, `GET/POST/PUT/DELETE /api/auth/users` (Admin only).
+- **Hệ thống & Tài liệu:** `GET /api/health`, `GET /api/docs` (Swagger UI), `GET /api/system/backup` (Admin), `POST /api/system/restore` (Admin), `GET/POST /api/system/autostart` (Admin).
 - **Connections:** `GET/POST /api/connections`, `PUT/DELETE /api/connections/{id}`, `POST /api/connections/{id}/reconnect`, `POST /api/connections/test`, `GET /api/connections/opc-da/servers`.
 - **Tags & Groups:** `GET/POST /api/tags`, `PUT/DELETE /api/tags/{id}`, `POST /api/tags/{id}/write`, `POST /api/tags/batch`, `POST /api/tags/bulk-update`, `POST /api/tags/find-replace`, `POST /api/tags/paste`, `GET/POST /api/tags/groups`, `PUT /api/tags/groups/rename`, `DELETE /api/tags/groups/by-name`, `POST /api/tags/groups/paste`, `GET /api/tags/s7/tia-env`, `POST /api/tags/s7/browse-local-file`, `POST /api/tags/s7/scan-project`, `POST /api/tags/s7/scan-files`, `POST /api/tags/s7/parse`, `POST /api/tags/s7/parse-file`.
 - **USR-M100 Control:** `GET/POST /api/usr-m100/devices`, `PUT/DELETE /api/usr-m100/devices/{id}`, `POST /api/usr-m100/devices/{id}/buffer`, `POST /api/usr-m100/devices/{id}/publish`, `POST /api/usr-m100/devices/{id}/query`, `POST /api/usr-m100/publish-raw`, `GET/DELETE /api/usr-m100/history`.
-- **Dịch vụ & Lịch sử:** `GET/PUT /api/opcua/config`, `GET/PUT /api/forward/config`, `POST /api/forward/start|stop|test`, `GET/PUT /api/history/config`, `POST /api/history/sample-now`, `GET /api/history/query`, `DELETE /api/history/clear`, `GET/DELETE /api/logs`, `WS /ws`.
+- **Dịch vụ & Lịch sử:** `GET/PUT /api/opcua/config`, `GET/PUT /api/forward/config`, `POST /api/forward/start|stop|test`, `GET/PUT /api/history/config`, `POST /api/history/sample-now`, `GET /api/history/query`, `DELETE /api/history/clear`, `GET/DELETE /api/logs`, `WS /ws?token=<token>`.
 
 ### 11.2 10 tình huống xử lý sự cố thường gặp
 1. **Siemens S7 không kết nối hoặc đọc DB trả Bad:** Kiểm tra PUT/GET và bỏ tích *Optimized block access* trong TIA Portal; xác nhận `Rack=0`, `Slot=1` (S7-1200/1500) hoặc `Slot=2` (S7-300); mở cổng TCP 102.

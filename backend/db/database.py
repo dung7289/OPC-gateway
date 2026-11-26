@@ -78,6 +78,32 @@ CREATE_TAG_HISTORY_INDEX = (
     "CREATE INDEX IF NOT EXISTS idx_tag_history_tag_ts ON tag_history (tag_id, ts);"
 )
 
+CREATE_USERS_TABLE = """
+CREATE TABLE IF NOT EXISTS users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    username      TEXT    NOT NULL UNIQUE,
+    full_name     TEXT    DEFAULT '',
+    password_hash TEXT    NOT NULL,
+    role          TEXT    NOT NULL DEFAULT 'viewer',
+    enabled       INTEGER NOT NULL DEFAULT 1,
+    created_at    TEXT    DEFAULT (datetime('now')),
+    last_login_at TEXT
+);
+"""
+
+CREATE_USER_SESSIONS_TABLE = """
+CREATE TABLE IF NOT EXISTS user_sessions (
+    token_hash TEXT PRIMARY KEY,
+    user_id    INTEGER NOT NULL,
+    expires_at REAL    NOT NULL,
+    created_at TEXT    DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+"""
+CREATE_USER_SESSIONS_INDEX = (
+    "CREATE INDEX IF NOT EXISTS idx_user_sessions_expires ON user_sessions (expires_at);"
+)
+
 # Columns added after the first release (applied to existing databases via ALTER TABLE).
 # (column_name, ddl_fragment)
 TAG_EXTRA_COLUMNS = [
@@ -117,6 +143,9 @@ async def init_db() -> None:
         await db.execute(CREATE_EVENT_LOGS_TABLE)
         await db.execute(CREATE_TAG_HISTORY_TABLE)
         await db.execute(CREATE_TAG_HISTORY_INDEX)
+        await db.execute(CREATE_USERS_TABLE)
+        await db.execute(CREATE_USER_SESSIONS_TABLE)
+        await db.execute(CREATE_USER_SESSIONS_INDEX)
         await _migrate_tags_table(db)
         await db.commit()
 

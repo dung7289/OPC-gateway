@@ -14,6 +14,8 @@ from typing import List
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from core.auth_service import get_user_by_token
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -64,7 +66,18 @@ manager = ConnectionManager()
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
-    """Accept WebSocket connections and keep them alive until they disconnect."""
+    """Accept authenticated WebSocket connections and keep them alive until disconnect."""
+    token = (websocket.query_params.get("token") or "").strip()
+    if not token:
+        auth_hdr = websocket.headers.get("authorization") or ""
+        if auth_hdr.lower().startswith("bearer "):
+            token = auth_hdr[7:].strip()
+
+    user = await get_user_by_token(token)
+    if not user:
+        await websocket.close(code=4401, reason="Unauthorized")
+        return
+
     await manager.connect(websocket)
     try:
         while True:

@@ -536,6 +536,7 @@ function TreeNode({
   onDelete,
   collapsedNodes,
   onToggleCollapse,
+  isAdmin = false,
 }) {
   const nodeKey = `${conn.id}:${node.fullPath}`;
   const hasChildren = node.children && node.children.length > 0;
@@ -602,7 +603,8 @@ function TreeNode({
 
         {/* Nút thao tác nhanh & Số lượng tags */}
         <div className="flex items-center gap-1 pl-1 shrink-0">
-          <div className="hidden group-hover/item:flex items-center gap-0.5">
+          {isAdmin && (
+            <div className="hidden group-hover/item:flex items-center gap-0.5">
             {/* Nút Tạo thư mục con */}
             <button
               type="button"
@@ -670,7 +672,8 @@ function TreeNode({
             >
               <Trash2 className="w-3 h-3" />
             </button>
-          </div>
+            </div>
+          )}
 
           <span
             className={`text-[10px] font-mono px-1 rounded ${
@@ -704,6 +707,7 @@ function TreeNode({
               onDelete={onDelete}
               collapsedNodes={collapsedNodes}
               onToggleCollapse={onToggleCollapse}
+              isAdmin={isAdmin}
             />
           ))}
         </div>
@@ -715,6 +719,7 @@ function TreeNode({
 export default function Tags() {
   const queryClient = useQueryClient();
   const tagValues = useStore((s) => s.tagValues);
+  const isAdmin = useStore((s) => s.user?.role === 'admin');
 
   const [showForm, setShowForm] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
@@ -943,6 +948,7 @@ export default function Tags() {
 
   // Hỗ trợ phím tắt Ctrl+C / Ctrl+V khi không gõ trong ô nhập liệu
   useEffect(() => {
+    if (!isAdmin) return undefined;
     const onKeyDown = (e) => {
       const tag = (e.target?.tagName || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target?.isContentEditable) {
@@ -965,7 +971,7 @@ export default function Tags() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectedTagIds, selectedTree, clipboard, handleCopyTags, handleCopyGroup, handlePaste]);
+  }, [isAdmin, selectedTagIds, selectedTree, clipboard, handleCopyTags, handleCopyGroup, handlePaste]);
 
   // -------------------------------------------------------------
   // EXCEL EXPORT
@@ -1175,42 +1181,46 @@ export default function Tags() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Nút Tạo Thư Mục Mới */}
-          <button
-            onClick={() => openCreateGroup(selectedTree.connId, null)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors cursor-pointer"
-            title="Tạo thêm thư mục (Group) mới cho Connection"
-          >
-            <FolderPlus className="w-4 h-4 text-amber-600" />
-            + Thư Mục Mới
-          </button>
+          {isAdmin && (
+            <>
+              {/* Nút Tạo Thư Mục Mới */}
+              <button
+                onClick={() => openCreateGroup(selectedTree.connId, null)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors cursor-pointer"
+                title="Tạo thêm thư mục (Group) mới cho Connection"
+              >
+                <FolderPlus className="w-4 h-4 text-amber-600" />
+                + Thư Mục Mới
+              </button>
 
-          {/* Nút Tải Mẫu Excel */}
-          <button
-            onClick={handleDownloadTemplate}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer"
-            title="Tải file Excel mẫu đúng thư mục đang chọn"
-          >
-            <Download className="w-3.5 h-3.5 text-gray-500" />
-            File Mẫu
-          </button>
+              {/* Nút Tải Mẫu Excel */}
+              <button
+                onClick={handleDownloadTemplate}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer"
+                title="Tải file Excel mẫu đúng thư mục đang chọn"
+              >
+                <Download className="w-3.5 h-3.5 text-gray-500" />
+                File Mẫu
+              </button>
 
-          {/* Nút Import Excel */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImportFile}
-            accept=".xlsx, .xls, .csv"
-            className="hidden"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors cursor-pointer"
-            title="Nhập tags từ Excel (tự động phân vào thư mục & bỏ qua tag trùng lặp)"
-          >
-            <Upload className="w-3.5 h-3.5 text-green-600" />
-            Import Excel
-          </button>
+              {/* Nút Import Excel */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImportFile}
+                accept=".xlsx, .xls, .csv"
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors cursor-pointer"
+                title="Nhập tags từ Excel (tự động phân vào thư mục & bỏ qua tag trùng lặp)"
+              >
+                <Upload className="w-3.5 h-3.5 text-green-600" />
+                Import Excel
+              </button>
+            </>
+          )}
 
           {/* Nút Export Excel */}
           <button
@@ -1222,54 +1232,58 @@ export default function Tags() {
             Export Excel
           </button>
 
-          {/* Nút Auto Tag (MQTT / JSON) Kepware Style */}
-          <button
-            onClick={() => setShowAutoTag(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
-            title="Tự động quét Topic MQTT và trích xuất các node trong JSON để tạo Tag giống Kepware"
-          >
-            <Sparkles className="w-4 h-4 text-purple-600" />
-            Auto Tag (JSON)
-          </button>
+          {isAdmin && (
+            <>
+              {/* Nút Auto Tag (MQTT / JSON) Kepware Style */}
+              <button
+                onClick={() => setShowAutoTag(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                title="Tự động quét Topic MQTT và trích xuất các node trong JSON để tạo Tag giống Kepware"
+              >
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                Auto Tag (JSON)
+              </button>
 
-          {/* Nút Duyệt & Scan Tag OPC DA (Classic) */}
-          <button
-            onClick={() => setShowOpcDaBrowser(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-cyan-700 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
-            title="Duyệt cây địa chỉ OPC DA (Kepware / Phoenix Contact) và import tags vào Gateway"
-          >
-            <Database className="w-4 h-4 text-cyan-600" />
-            Scan OPC DA
-          </button>
+              {/* Nút Duyệt & Scan Tag OPC DA (Classic) */}
+              <button
+                onClick={() => setShowOpcDaBrowser(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-cyan-700 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                title="Duyệt cây địa chỉ OPC DA (Kepware / Phoenix Contact) và import tags vào Gateway"
+              >
+                <Database className="w-4 h-4 text-cyan-600" />
+                Scan OPC DA
+              </button>
 
-          {/* Nút Duyệt & Scan Tag OPC UA */}
-          <button
-            onClick={() => setShowOpcUaBrowser(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
-            title="Duyệt cây NodeId OPC-UA và import tags vào Gateway"
-          >
-            <Network className="w-4 h-4 text-indigo-600" />
-            Scan OPC UA
-          </button>
+              {/* Nút Duyệt & Scan Tag OPC UA */}
+              <button
+                onClick={() => setShowOpcUaBrowser(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                title="Duyệt cây NodeId OPC-UA và import tags vào Gateway"
+              >
+                <Network className="w-4 h-4 text-indigo-600" />
+                Scan OPC UA
+              </button>
 
-          {/* Nút Duyệt & Scan cây dự án Siemens TIA Portal (S7) */}
-          <button
-            onClick={() => setShowS7Import(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
-            title="Quét cây dự án TIA Portal (.ap11–.ap21, .zapXX, .db, .xml, .xlsx) và chọn tag trực quan"
-          >
-            <Cpu className="w-4 h-4 text-amber-600" />
-            Scan TIA S7
-          </button>
+              {/* Nút Duyệt & Scan cây dự án Siemens TIA Portal (S7) */}
+              <button
+                onClick={() => setShowS7Import(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                title="Quét cây dự án TIA Portal (.ap11–.ap21, .zapXX, .db, .xml, .xlsx) và chọn tag trực quan"
+              >
+                <Cpu className="w-4 h-4 text-amber-600" />
+                Scan TIA S7
+              </button>
 
-          {/* Add Tag */}
-          <button
-            onClick={() => { setEditTag(null); setShowForm(true); }}
-            className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm cursor-pointer ml-1"
-          >
-            <Plus className="w-4 h-4" />
-            Add Tag
-          </button>
+              {/* Add Tag */}
+              <button
+                onClick={() => { setEditTag(null); setShowForm(true); }}
+                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm cursor-pointer ml-1"
+              >
+                <Plus className="w-4 h-4" />
+                Add Tag
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -1282,13 +1296,15 @@ export default function Tags() {
             <span className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
               <Folder className="w-4 h-4 text-amber-500" /> Channels & Groups
             </span>
-            <button
-              onClick={() => openCreateGroup(selectedTree.connId, null)}
-              className="p-1 hover:bg-amber-50 rounded text-amber-600 cursor-pointer"
-              title="Tạo thêm thư mục mới"
-            >
-              <FolderPlus className="w-4 h-4" />
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => openCreateGroup(selectedTree.connId, null)}
+                className="p-1 hover:bg-amber-50 rounded text-amber-600 cursor-pointer"
+                title="Tạo thêm thư mục mới"
+              >
+                <FolderPlus className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           <div className="space-y-1 text-sm">
@@ -1331,14 +1347,16 @@ export default function Tags() {
                       <span className="text-xs text-gray-400 font-mono">{countTagsInConn}</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => openCreateGroup(connection.id, null)}
-                      className="hidden group-hover/conn:block p-1 hover:bg-amber-100 text-amber-700 rounded transition-colors ml-1 cursor-pointer"
-                      title={`Tạo thư mục trong kênh '${connection.name}'`}
-                    >
-                      <FolderPlus className="w-3.5 h-3.5" />
-                    </button>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => openCreateGroup(connection.id, null)}
+                        className="hidden group-hover/conn:block p-1 hover:bg-amber-100 text-amber-700 rounded transition-colors ml-1 cursor-pointer"
+                        title={`Tạo thư mục trong kênh '${connection.name}'`}
+                      >
+                        <FolderPlus className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
 
                   {/* Hierarchical Subfolders (Cây thư mục con Kepware) */}
@@ -1362,6 +1380,7 @@ export default function Tags() {
                           onDelete={(connId, grp, cName, count) => setDeleteGroupTarget({ connId, groupName: grp, connName: cName, count })}
                           collapsedNodes={collapsedNodes}
                           onToggleCollapse={handleToggleCollapse}
+                          isAdmin={isAdmin}
                         />
                       ))
                     )}
@@ -1442,7 +1461,7 @@ export default function Tags() {
               )}
 
               {/* Nút Thao tác Thư mục nhanh trên breadcrumb */}
-              {selectedTree.type === 'group' && selectedTree.group && (
+              {isAdmin && selectedTree.type === 'group' && selectedTree.group && (
                 <div className="flex items-center gap-1 ml-1.5">
                   <button
                     type="button"
@@ -1507,35 +1526,39 @@ export default function Tags() {
           {/* Thanh Công Cụ Thao Tác Nhanh (Folder / Connection Action Bar) */}
           <div className="px-3 py-2 bg-[#131C2E] border-b border-slate-700/70 flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-1.5">
-              {/* Add Tag */}
-              <button
-                onClick={() => { setEditTag(null); setShowForm(true); }}
-                className="flex items-center gap-1 px-3 py-1 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-2xs cursor-pointer"
-                title={selectedTree.type === 'group' ? `Thêm Tag vào thư mục '${selectedTree.group}'` : 'Thêm Tag mới'}
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add Tag
-              </button>
+              {isAdmin && (
+                <>
+                  {/* Add Tag */}
+                  <button
+                    onClick={() => { setEditTag(null); setShowForm(true); }}
+                    className="flex items-center gap-1 px-3 py-1 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                    title={selectedTree.type === 'group' ? `Thêm Tag vào thư mục '${selectedTree.group}'` : 'Thêm Tag mới'}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Tag
+                  </button>
 
-              {/* Tạo Thư Mục Mới / Thư Mục Con */}
-              <button
-                onClick={() => openCreateGroup(selectedTree.connId, selectedTree.type === 'group' ? selectedTree.group : null)}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors cursor-pointer"
-                title={selectedTree.type === 'group' ? `Tạo thư mục con bên trong '${selectedTree.group}'` : "Tạo thêm thư mục (Group) mới cho Kênh này"}
-              >
-                <FolderPlus className="w-3.5 h-3.5 text-amber-600" />
-                {selectedTree.type === 'group' ? '+ Thư Mục Con' : '+ Thư Mục'}
-              </button>
+                  {/* Tạo Thư Mục Mới / Thư Mục Con */}
+                  <button
+                    onClick={() => openCreateGroup(selectedTree.connId, selectedTree.type === 'group' ? selectedTree.group : null)}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors cursor-pointer"
+                    title={selectedTree.type === 'group' ? `Tạo thư mục con bên trong '${selectedTree.group}'` : "Tạo thêm thư mục (Group) mới cho Kênh này"}
+                  >
+                    <FolderPlus className="w-3.5 h-3.5 text-amber-600" />
+                    {selectedTree.type === 'group' ? '+ Thư Mục Con' : '+ Thư Mục'}
+                  </button>
 
-              {/* Import Excel */}
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-green-800 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors cursor-pointer"
-                title="Nhập tags từ Excel"
-              >
-                <Upload className="w-3.5 h-3.5 text-green-600" />
-                Import Excel
-              </button>
+                  {/* Import Excel */}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-green-800 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors cursor-pointer"
+                    title="Nhập tags từ Excel"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-green-600" />
+                    Import Excel
+                  </button>
+                </>
+              )}
 
               {/* Export Excel */}
               <button
@@ -1547,102 +1570,106 @@ export default function Tags() {
                 Export Excel
               </button>
 
-              {/* Nút Scan theo giao thức của Connection đang chọn */}
-              {selectedTree.connId && connMap[selectedTree.connId]?.protocol === 'opc_da' && (
-                <button
-                  onClick={() => setShowOpcDaBrowser(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-cyan-800 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 rounded-lg transition-colors cursor-pointer"
-                  title="Duyệt cây OPC DA và tạo thư mục tự động"
-                >
-                  <Database className="w-3.5 h-3.5 text-cyan-600" />
-                  Scan OPC DA
-                </button>
-              )}
-
-              {selectedTree.connId && connMap[selectedTree.connId]?.protocol === 'opcua' && (
-                <button
-                  onClick={() => setShowOpcUaBrowser(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors cursor-pointer"
-                  title="Duyệt cây OPC UA và tạo thư mục tự động"
-                >
-                  <Network className="w-3.5 h-3.5 text-indigo-600" />
-                  Scan OPC UA
-                </button>
-              )}
-
-              {selectedTree.connId && connMap[selectedTree.connId]?.protocol === 'mqtt' && (
-                <button
-                  onClick={() => setShowAutoTag(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-purple-800 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors cursor-pointer"
-                  title="Tự động trích xuất tag từ MQTT JSON"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                  Auto Tag (JSON)
-                </button>
-              )}
-
-              {/* Copy các tag đang chọn */}
-              {selectedTagIds.size > 0 && (
+              {isAdmin && (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => handleCopyTags(Array.from(selectedTagIds))}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 rounded-lg transition-colors cursor-pointer"
-                    title="Copy các tag đã tích chọn (Ctrl+C)"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    Copy ({selectedTagIds.size} tag)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowBulkEdit(true)}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 rounded-lg transition-colors cursor-pointer"
-                    title="Chỉnh sửa hàng loạt các tag đang chọn"
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5" />
-                    Sửa hàng loạt
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowFindReplace(true)}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 rounded-lg transition-colors cursor-pointer"
-                    title="Tìm &amp; thay thế tên/địa chỉ/thư mục trên các tag đang chọn"
-                  >
-                    <Replace className="w-3.5 h-3.5" />
-                    Tìm &amp; Thay
-                  </button>
+                  {/* Nút Scan theo giao thức của Connection đang chọn */}
+                  {selectedTree.connId && connMap[selectedTree.connId]?.protocol === 'opc_da' && (
+                    <button
+                      onClick={() => setShowOpcDaBrowser(true)}
+                      className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-cyan-800 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 rounded-lg transition-colors cursor-pointer"
+                      title="Duyệt cây OPC DA và tạo thư mục tự động"
+                    >
+                      <Database className="w-3.5 h-3.5 text-cyan-600" />
+                      Scan OPC DA
+                    </button>
+                  )}
+
+                  {selectedTree.connId && connMap[selectedTree.connId]?.protocol === 'opcua' && (
+                    <button
+                      onClick={() => setShowOpcUaBrowser(true)}
+                      className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors cursor-pointer"
+                      title="Duyệt cây OPC UA và tạo thư mục tự động"
+                    >
+                      <Network className="w-3.5 h-3.5 text-indigo-600" />
+                      Scan OPC UA
+                    </button>
+                  )}
+
+                  {selectedTree.connId && connMap[selectedTree.connId]?.protocol === 'mqtt' && (
+                    <button
+                      onClick={() => setShowAutoTag(true)}
+                      className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-purple-800 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors cursor-pointer"
+                      title="Tự động trích xuất tag từ MQTT JSON"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                      Auto Tag (JSON)
+                    </button>
+                  )}
+
+                  {/* Copy các tag đang chọn */}
+                  {selectedTagIds.size > 0 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyTags(Array.from(selectedTagIds))}
+                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 rounded-lg transition-colors cursor-pointer"
+                        title="Copy các tag đã tích chọn (Ctrl+C)"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        Copy ({selectedTagIds.size} tag)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowBulkEdit(true)}
+                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 rounded-lg transition-colors cursor-pointer"
+                        title="Chỉnh sửa hàng loạt các tag đang chọn"
+                      >
+                        <SlidersHorizontal className="w-3.5 h-3.5" />
+                        Sửa hàng loạt
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowFindReplace(true)}
+                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 rounded-lg transition-colors cursor-pointer"
+                        title="Tìm &amp; thay thế tên/địa chỉ/thư mục trên các tag đang chọn"
+                      >
+                        <Replace className="w-3.5 h-3.5" />
+                        Tìm &amp; Thay
+                      </button>
+                    </>
+                  )}
+
+                  {/* Copy thư mục đang đứng */}
+                  {selectedTree.type === 'group' && selectedTree.group && (
+                    <button
+                      type="button"
+                      onClick={() => handleCopyGroup(selectedTree.connId, selectedTree.group)}
+                      className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 rounded-lg transition-colors cursor-pointer"
+                      title={`Copy toàn bộ thư mục '${selectedTree.group}'`}
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      Copy Thư Mục
+                    </button>
+                  )}
+
+                  {/* Nút Paste từ clipboard */}
+                  {clipboard && (
+                    <button
+                      type="button"
+                      disabled={pasting}
+                      onClick={handlePaste}
+                      className="flex items-center gap-1 px-3 py-1 text-xs font-bold text-[#0F172A] bg-emerald-400 hover:bg-emerald-300 rounded-lg transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+                      title="Dán vào vị trí đang chọn (Ctrl+V). Tự động tăng chỉ số nếu trùng tên!"
+                    >
+                      <ClipboardPaste className="w-3.5 h-3.5" />
+                      {pasting
+                        ? 'Đang dán...'
+                        : clipboard.type === 'tags'
+                        ? `Paste ${clipboard.label}`
+                        : `Paste '${clipboard.groupName.split('/').pop()}'`}
+                    </button>
+                  )}
                 </>
-              )}
-
-              {/* Copy thư mục đang đứng */}
-              {selectedTree.type === 'group' && selectedTree.group && (
-                <button
-                  type="button"
-                  onClick={() => handleCopyGroup(selectedTree.connId, selectedTree.group)}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 rounded-lg transition-colors cursor-pointer"
-                  title={`Copy toàn bộ thư mục '${selectedTree.group}'`}
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  Copy Thư Mục
-                </button>
-              )}
-
-              {/* Nút Paste từ clipboard */}
-              {clipboard && (
-                <button
-                  type="button"
-                  disabled={pasting}
-                  onClick={handlePaste}
-                  className="flex items-center gap-1 px-3 py-1 text-xs font-bold text-[#0F172A] bg-emerald-400 hover:bg-emerald-300 rounded-lg transition-colors shadow-xs cursor-pointer disabled:opacity-50"
-                  title="Dán vào vị trí đang chọn (Ctrl+V). Tự động tăng chỉ số nếu trùng tên!"
-                >
-                  <ClipboardPaste className="w-3.5 h-3.5" />
-                  {pasting
-                    ? 'Đang dán...'
-                    : clipboard.type === 'tags'
-                    ? `Paste ${clipboard.label}`
-                    : `Paste '${clipboard.groupName.split('/').pop()}'`}
-                </button>
               )}
             </div>
 
@@ -1661,35 +1688,39 @@ export default function Tags() {
               <div className="flex flex-col items-center justify-center h-48 text-gray-400">
                 <TagIcon className="w-8 h-8 mb-2 opacity-30" />
                 <p className="text-xs">Chưa có tag nào trong thư mục này.</p>
-                <div className="flex gap-2 mt-2">
-                  <button
-                    onClick={() => { setEditTag(null); setShowForm(true); }}
-                    className="text-xs text-blue-600 hover:underline cursor-pointer"
-                  >
-                    + Thêm Tag mới
-                  </button>
-                  <span className="text-gray-300">•</span>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-xs text-green-600 hover:underline cursor-pointer"
-                  >
-                    Import từ Excel
-                  </button>
-                </div>
+                {isAdmin && (
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => { setEditTag(null); setShowForm(true); }}
+                      className="text-xs text-blue-600 hover:underline cursor-pointer"
+                    >
+                      + Thêm Tag mới
+                    </button>
+                    <span className="text-gray-300">•</span>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-xs text-green-600 hover:underline cursor-pointer"
+                    >
+                      Import từ Excel
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <table className="w-full text-left text-xs min-w-[740px]">
                 <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase font-semibold">
                   <tr>
-                    <th className="pl-4 pr-2 py-2.5 w-8">
-                      <input
-                        type="checkbox"
-                        checked={filteredTags.length > 0 && filteredTags.every((t) => selectedTagIds.has(t.id))}
-                        onChange={toggleSelectAllFiltered}
-                        aria-label="Chọn tất cả tag đang hiển thị"
-                        className="rounded accent-emerald-500 cursor-pointer"
-                      />
-                    </th>
+                    {isAdmin && (
+                      <th className="pl-4 pr-2 py-2.5 w-8">
+                        <input
+                          type="checkbox"
+                          checked={filteredTags.length > 0 && filteredTags.every((t) => selectedTagIds.has(t.id))}
+                          onChange={toggleSelectAllFiltered}
+                          aria-label="Chọn tất cả tag đang hiển thị"
+                          className="rounded accent-emerald-500 cursor-pointer"
+                        />
+                      </th>
+                    )}
                     <th className="px-4 py-2.5">Tag Name</th>
                     <th className="px-4 py-2.5">Thư Mục (Group)</th>
                     <th className="px-4 py-2.5">Tên SCADA (Kepware)</th>
@@ -1709,19 +1740,21 @@ export default function Tags() {
                     const quality = tv?.quality || tag.quality || 'Unknown';
                     const grp = (tag.tag_group || '').trim();
                     const scadaName = tag.scada_name || (grp ? `${grp}.${tag.name}` : tag.name);
-                    const isChecked = selectedTagIds.has(tag.id);
+                    const isChecked = isAdmin && selectedTagIds.has(tag.id);
 
                     return (
                       <tr key={tag.id} className={`hover:bg-blue-50/40 transition-colors ${isChecked ? 'bg-emerald-500/10' : ''}`}>
-                        <td className="pl-4 pr-2 py-2.5">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => toggleSelectTag(tag.id)}
-                            aria-label={`Chọn tag ${tag.name}`}
-                            className="rounded accent-emerald-500 cursor-pointer"
-                          />
-                        </td>
+                        {isAdmin && (
+                          <td className="pl-4 pr-2 py-2.5">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleSelectTag(tag.id)}
+                              aria-label={`Chọn tag ${tag.name}`}
+                              className="rounded accent-emerald-500 cursor-pointer"
+                            />
+                          </td>
+                        )}
                         <td className="px-4 py-2.5 font-bold text-gray-900">
                           <div className="flex items-center flex-wrap gap-1.5">
                             <span>{tag.name}</span>
@@ -1782,6 +1815,12 @@ export default function Tags() {
                           <StatusBadge status={quality} size="sm" />
                         </td>
                         <td className="px-4 py-2.5 text-right">
+                          {!isAdmin ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700 text-[10px] font-mono text-slate-400">
+                              <Lock className="w-2.5 h-2.5" aria-hidden="true" />
+                              Chỉ xem
+                            </span>
+                          ) : (
                           <div className="flex items-center justify-end gap-1">
                             <button
                               type="button"
@@ -1828,6 +1867,7 @@ export default function Tags() {
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
+                          )}
                         </td>
                       </tr>
                     );

@@ -37,6 +37,7 @@ import {
   clearUsrM100History,
 } from '../api/usrM100';
 import StatusBadge from '../components/StatusBadge';
+import useStore from '../store/useStore';
 
 function mapPointType(tagDataType) {
   const dt = (tagDataType || '').toLowerCase();
@@ -1004,6 +1005,7 @@ function TagPickerModal({ existingNames, connections, allTags, onConfirm, onClos
 
 export default function UsrM100Control() {
   const queryClient = useQueryClient();
+  const isAdmin = useStore((s) => s.user?.role === 'admin');
 
   const { data: devices = [], isLoading } = useQuery({
     queryKey: ['usrM100Devices'],
@@ -1365,17 +1367,19 @@ export default function UsrM100Control() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setEditingDevice(null);
-            setShowDeviceModal(true);
-          }}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-[#0F172A] text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          Thêm Trạm USR-M100
-        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => {
+              setEditingDevice(null);
+              setShowDeviceModal(true);
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-[#0F172A] text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Thêm Trạm USR-M100
+          </button>
+        )}
       </div>
 
       {/* Main Split View */}
@@ -1443,31 +1447,33 @@ export default function UsrM100Control() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingDevice(dev);
-                            setShowDeviceModal(true);
-                          }}
-                          className="p-1 text-slate-400 hover:text-sky-400 rounded cursor-pointer"
-                          title="Sửa cấu hình trạm"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (window.confirm(`Xóa trạm '${dev.name}'?`)) {
-                              deleteDevMutation.mutate(dev.id);
-                            }
-                          }}
-                          className="p-1 text-slate-400 hover:text-red-400 rounded cursor-pointer"
-                          title="Xóa trạm"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      {isAdmin && (
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingDevice(dev);
+                              setShowDeviceModal(true);
+                            }}
+                            className="p-1 text-slate-400 hover:text-sky-400 rounded cursor-pointer"
+                            title="Sửa cấu hình trạm"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Xóa trạm '${dev.name}'?`)) {
+                                deleteDevMutation.mutate(dev.id);
+                              }
+                            }}
+                            className="p-1 text-slate-400 hover:text-red-400 rounded cursor-pointer"
+                            title="Xóa trạm"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -1492,18 +1498,20 @@ export default function UsrM100Control() {
                 <SlidersHorizontal className="w-3.5 h-3.5" />
                 Vùng Đệm &amp; Điều Khiển Trạm
               </button>
-              <button
-                type="button"
-                onClick={() => setRightTab('adhoc')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
-                  rightTab === 'adhoc'
-                    ? 'bg-sky-500 text-[#0F172A]'
-                    : 'bg-[#0F172A] text-slate-300 border border-slate-700 hover:text-slate-100'
-                }`}
-              >
-                <Zap className="w-3.5 h-3.5" />
-                Gửi Nhanh Tùy Chỉnh (Quick Publish)
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setRightTab('adhoc')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
+                    rightTab === 'adhoc'
+                      ? 'bg-sky-500 text-[#0F172A]'
+                      : 'bg-[#0F172A] text-slate-300 border border-slate-700 hover:text-slate-100'
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  Gửi Nhanh Tùy Chỉnh (Quick Publish)
+                </button>
+              )}
             </div>
 
             <button
@@ -1531,26 +1539,39 @@ export default function UsrM100Control() {
                     <div className="font-heading font-bold text-slate-100 flex items-center flex-wrap gap-2">
                       <span>{activeDevice.name}</span>
                       <StatusBadge status={activeDevice.mqtt_connected ? 'connected' : 'disconnected'} size="sm" />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateDevMutation.mutate({
-                            id: activeDevice.id,
-                            data: { auto_sync_enabled: !activeDevice.auto_sync_enabled },
-                          })
-                        }
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border cursor-pointer transition-colors ${
-                          activeDevice.auto_sync_enabled
-                            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25'
-                            : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
-                        }`}
-                        title="Bật/tắt tự động publish khi giá trị Tag nguồn thay đổi"
-                      >
-                        <Power className="w-3 h-3" />
-                        {activeDevice.auto_sync_enabled
-                          ? 'Auto-Sync: BẬT (chỉ gửi khi đổi)'
-                          : 'Auto-Sync: TẮT'}
-                      </button>
+                      {isAdmin ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateDevMutation.mutate({
+                              id: activeDevice.id,
+                              data: { auto_sync_enabled: !activeDevice.auto_sync_enabled },
+                            })
+                          }
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border cursor-pointer transition-colors ${
+                            activeDevice.auto_sync_enabled
+                              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25'
+                              : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+                          }`}
+                          title="Bật/tắt tự động publish khi giá trị Tag nguồn thay đổi"
+                        >
+                          <Power className="w-3 h-3" />
+                          {activeDevice.auto_sync_enabled
+                            ? 'Auto-Sync: BẬT (chỉ gửi khi đổi)'
+                            : 'Auto-Sync: TẮT'}
+                        </button>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+                            activeDevice.auto_sync_enabled
+                              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                              : 'bg-slate-800 text-slate-400 border-slate-700'
+                          }`}
+                        >
+                          <Power className="w-3 h-3" />
+                          {activeDevice.auto_sync_enabled ? 'Auto-Sync: BẬT' : 'Auto-Sync: TẮT'}
+                        </span>
+                      )}
                     </div>
                     <div className="font-mono text-[11px] text-slate-400">
                       Kênh: <span className="text-slate-200">{activeDevice.mqtt_name}</span> • SUB:{' '}
@@ -1563,24 +1584,26 @@ export default function UsrM100Control() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowTagPicker(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 rounded-lg cursor-pointer"
-                    >
-                      <Link2 className="w-3.5 h-3.5" />
-                      Chọn Tag từ phần mềm
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPointModalState({ mode: 'add', point: null })}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 rounded-lg cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Thêm điểm
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowTagPicker(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 rounded-lg cursor-pointer"
+                      >
+                        <Link2 className="w-3.5 h-3.5" />
+                        Chọn Tag từ phần mềm
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPointModalState({ mode: 'add', point: null })}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 rounded-lg cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Thêm điểm
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Points Buffer Table */}
@@ -1588,23 +1611,25 @@ export default function UsrM100Control() {
                   <table className="w-full text-xs">
                     <thead className="bg-[#0F172A]/90 border-b border-slate-800 text-slate-400">
                       <tr>
-                        <th className="px-3 py-2.5 w-8 text-center">
-                          <input
-                            type="checkbox"
-                            checked={
-                              activeDevice.points.length > 0 &&
-                              selectedPoints.size === activeDevice.points.length
-                            }
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedPoints(new Set(activeDevice.points.map((p) => p.name)));
-                              } else {
-                                setSelectedPoints(new Set());
+                        {isAdmin && (
+                          <th className="px-3 py-2.5 w-8 text-center">
+                            <input
+                              type="checkbox"
+                              checked={
+                                activeDevice.points.length > 0 &&
+                                selectedPoints.size === activeDevice.points.length
                               }
-                            }}
-                            className="accent-emerald-500 rounded cursor-pointer"
-                          />
-                        </th>
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedPoints(new Set(activeDevice.points.map((p) => p.name)));
+                                } else {
+                                  setSelectedPoints(new Set());
+                                }
+                              }}
+                              className="accent-emerald-500 rounded cursor-pointer"
+                            />
+                          </th>
+                        )}
                         <th className="px-3 py-2.5 text-left font-semibold">Điểm (M100 Name)</th>
                         <th className="px-3 py-2.5 text-left font-semibold">Tag Nguồn (Auto-Sync)</th>
                         <th className="px-3 py-2.5 text-left font-semibold">Feedback Thực Tế</th>
@@ -1634,21 +1659,23 @@ export default function UsrM100Control() {
                           );
                           return (
                             <tr key={pt.name} className="hover:bg-slate-800/40">
-                              <td className="px-3 py-2.5 text-center">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedPoints.has(pt.name)}
-                                  onChange={(e) => {
-                                    setSelectedPoints((prev) => {
-                                      const next = new Set(prev);
-                                      if (e.target.checked) next.add(pt.name);
-                                      else next.delete(pt.name);
-                                      return next;
-                                    });
-                                  }}
-                                  className="accent-emerald-500 rounded cursor-pointer"
-                                />
-                              </td>
+                              {isAdmin && (
+                                <td className="px-3 py-2.5 text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedPoints.has(pt.name)}
+                                    onChange={(e) => {
+                                      setSelectedPoints((prev) => {
+                                        const next = new Set(prev);
+                                        if (e.target.checked) next.add(pt.name);
+                                        else next.delete(pt.name);
+                                        return next;
+                                      });
+                                    }}
+                                    className="accent-emerald-500 rounded cursor-pointer"
+                                  />
+                                </td>
+                              )}
                               <td className="px-3 py-2.5">
                                 <div className="font-mono font-bold text-slate-100">{pt.name}</div>
                                 <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
@@ -1701,7 +1728,11 @@ export default function UsrM100Control() {
                                 )}
                               </td>
                               <td className="px-3 py-2.5 space-y-1">
-                                {pt.data_type === 'bool' ? (
+                                {!isAdmin ? (
+                                  <span className="font-mono font-bold text-slate-200">
+                                    {pt.data_type === 'bool' ? (isBoolOn ? 'BẬT (1)' : 'TẮT (0)') : (draftVal ?? '—')}
+                                  </span>
+                                ) : pt.data_type === 'bool' ? (
                                   <div className="inline-flex items-center gap-1">
                                     <button
                                       type="button"
@@ -1752,34 +1783,38 @@ export default function UsrM100Control() {
                                 </div>
                               </td>
                               <td className="px-3 py-2.5 text-right">
-                                <div className="inline-flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleQuickToggleAndPublish(pt, draftVal)}
-                                    disabled={publishMutation.isPending}
-                                    className="px-2 py-1 text-[11px] font-semibold bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40 rounded cursor-pointer inline-flex items-center gap-1"
-                                    title={`Publish riêng điểm ${pt.name}`}
-                                  >
-                                    <Send className="w-3 h-3" />
-                                    Gửi
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setPointModalState({ mode: 'edit', point: pt })}
-                                    className="p-1 text-slate-400 hover:text-sky-400 cursor-pointer"
-                                    title="Sửa điểm"
-                                  >
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeletePoint(pt.name)}
-                                    className="p-1 text-slate-400 hover:text-red-400 cursor-pointer"
-                                    title="Xóa điểm"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
+                                {!isAdmin ? (
+                                  <span className="text-[11px] font-mono text-slate-500">Chỉ xem</span>
+                                ) : (
+                                  <div className="inline-flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleQuickToggleAndPublish(pt, draftVal)}
+                                      disabled={publishMutation.isPending}
+                                      className="px-2 py-1 text-[11px] font-semibold bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40 rounded cursor-pointer inline-flex items-center gap-1"
+                                      title={`Publish riêng điểm ${pt.name}`}
+                                    >
+                                      <Send className="w-3 h-3" />
+                                      Gửi
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setPointModalState({ mode: 'edit', point: pt })}
+                                      className="p-1 text-slate-400 hover:text-sky-400 cursor-pointer"
+                                      title="Sửa điểm"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeletePoint(pt.name)}
+                                      className="p-1 text-slate-400 hover:text-red-400 cursor-pointer"
+                                      title="Xóa điểm"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                )}
                               </td>
                             </tr>
                           );
@@ -1790,6 +1825,7 @@ export default function UsrM100Control() {
                 </div>
 
                 {/* Action Bar */}
+                {isAdmin && (
                 <div className="flex flex-wrap items-center justify-between gap-2.5">
                   <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
                     <label className="inline-flex items-center gap-1.5 text-slate-200 font-medium cursor-pointer">
@@ -1851,6 +1887,7 @@ export default function UsrM100Control() {
                     </button>
                   </div>
                 </div>
+                )}
               </div>
             )
           ) : (
@@ -2074,7 +2111,7 @@ export default function UsrM100Control() {
             >
               <RefreshCw className="w-3 h-3" /> Làm mới
             </button>
-            {history.length > 0 && (
+            {isAdmin && history.length > 0 && (
               <button
                 type="button"
                 onClick={() => clearHistMutation.mutate()}

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import useStore from '../store/useStore';
 
 // Automatically adapt: use relative path when served by FastAPI (port 8000), or fallback to port 8000 in dev
 const isViteDev = typeof window !== 'undefined' && window.location.port === '5173';
@@ -9,11 +10,27 @@ export const WS_URL = typeof window !== 'undefined'
 
 const client = axios.create({ baseURL: API_BASE });
 
+client.interceptors.request.use((config) => {
+  const token = useStore.getState().token;
+  if (token) {
+    config.headers = config.headers || {};
+    if (!config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
 client.interceptors.response.use(
   (response) => response,
   (error) => {
     if (!error.response) {
       error.message = 'Cannot connect to backend. Please ensure the server is running at ' + API_BASE;
+    } else if (error.response.status === 401) {
+      const reqUrl = String(error.config?.url || '');
+      if (!reqUrl.includes('/api/auth/login')) {
+        useStore.getState().clearAuth();
+      }
     }
     return Promise.reject(error);
   }

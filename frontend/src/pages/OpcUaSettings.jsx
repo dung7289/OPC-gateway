@@ -16,9 +16,11 @@ import {
   Copy,
 } from 'lucide-react';
 import client from '../api/client';
+import useStore from '../store/useStore';
 
 export default function OpcUaSettings() {
   const queryClient = useQueryClient();
+  const isAdmin = useStore((s) => s.user?.role === 'admin');
 
   const { data: config = {}, isLoading } = useQuery({
     queryKey: ['opcuaConfig'],
@@ -148,19 +150,21 @@ export default function OpcUaSettings() {
             </span>
           </div>
 
-          <button
-            type="button"
-            disabled={toggleServerMutation.isPending || updateMutation.isPending}
-            onClick={() => toggleServerMutation.mutate(!config.running)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 ${
-              config.running
-                ? 'bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40'
-                : 'bg-emerald-500 hover:bg-emerald-400 text-[#0F172A]'
-            }`}
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${toggleServerMutation.isPending ? 'animate-spin' : ''}`} aria-hidden="true" />
-            {config.running ? 'Dừng Server' : 'Khởi Động Lại'}
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              disabled={toggleServerMutation.isPending || updateMutation.isPending}
+              onClick={() => toggleServerMutation.mutate(!config.running)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 ${
+                config.running
+                  ? 'bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40'
+                  : 'bg-emerald-500 hover:bg-emerald-400 text-[#0F172A]'
+              }`}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${toggleServerMutation.isPending ? 'animate-spin' : ''}`} aria-hidden="true" />
+              {config.running ? 'Dừng Server' : 'Khởi Động Lại'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -175,20 +179,22 @@ export default function OpcUaSettings() {
             <p className="leading-relaxed text-red-200/90">
               {config.last_error || `Cổng ${config.port || 4840} đang bị ứng dụng khác (ví dụ: Kepware hoặc Windows OPC Service) chiếm dụng trên máy tính này.`}
             </p>
-            <div className="pt-1 flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-slate-300">Chuyển nhanh sang cổng trống:</span>
-              {[4841, 4845, 49320].map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => applyPortAndRestart(p)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0F172A] border border-red-500/40 hover:bg-red-500/20 rounded-lg text-red-200 font-mono font-semibold transition-colors cursor-pointer"
-                >
-                  <Zap className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
-                  Đổi sang cổng {p}
-                </button>
-              ))}
-            </div>
+            {isAdmin && (
+              <div className="pt-1 flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-slate-300">Chuyển nhanh sang cổng trống:</span>
+                {[4841, 4845, 49320].map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => applyPortAndRestart(p)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0F172A] border border-red-500/40 hover:bg-red-500/20 rounded-lg text-red-200 font-mono font-semibold transition-colors cursor-pointer"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
+                    Đổi sang cổng {p}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       ) : config.auto_fallback ? (
@@ -213,7 +219,7 @@ export default function OpcUaSettings() {
             <Sliders className="w-4 h-4 text-emerald-400" aria-hidden="true" /> Cài Đặt Chung
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <fieldset disabled={!isAdmin} className="grid grid-cols-1 md:grid-cols-2 gap-4 disabled:opacity-75">
             <div>
               <label htmlFor="opcua-port" className="text-xs font-semibold text-slate-300 block mb-1.5">
                 Cổng Port OPC-UA *
@@ -245,7 +251,7 @@ export default function OpcUaSettings() {
                 className="w-full bg-[#0F172A] border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
-          </div>
+          </fieldset>
 
           <div className="bg-[#0F172A]/85 p-3 rounded-lg border border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
             <span className="text-slate-400">Endpoint URL hiện tại:</span>
@@ -265,7 +271,7 @@ export default function OpcUaSettings() {
         </div>
 
         {/* Security Policy */}
-        <div className="glass-panel rounded-xl p-5 space-y-4">
+        <fieldset disabled={!isAdmin} className="glass-panel rounded-xl p-5 space-y-4 disabled:opacity-75">
           <h2 className="font-heading text-sm font-bold text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
             <Shield className="w-4 h-4 text-sky-400" aria-hidden="true" /> Chế Độ Mã Hóa & Bảo Mật (Security Policy)
           </h2>
@@ -321,10 +327,10 @@ export default function OpcUaSettings() {
               );
             })}
           </div>
-        </div>
+        </fieldset>
 
         {/* User Authentication */}
-        <div className="glass-panel rounded-xl p-5 space-y-4">
+        <fieldset disabled={!isAdmin} className="glass-panel rounded-xl p-5 space-y-4 disabled:opacity-75">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
             <h2 className="font-heading text-sm font-bold text-slate-100 flex items-center gap-2">
               <UserCheck className="w-4 h-4 text-emerald-400" aria-hidden="true" /> Xác Thực Tài Khoản Đăng Nhập
@@ -381,19 +387,21 @@ export default function OpcUaSettings() {
               </span>
             </div>
           )}
-        </div>
+        </fieldset>
 
         {/* Save Button */}
-        <div className="flex justify-end pt-1">
-          <button
-            type="submit"
-            disabled={updateMutation.isPending}
-            className="flex items-center gap-2 px-6 py-2.5 text-xs font-bold text-[#0F172A] bg-emerald-500 hover:bg-emerald-400 rounded-xl transition-colors shadow-md cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${updateMutation.isPending ? 'animate-spin' : ''}`} aria-hidden="true" />
-            {updateMutation.isPending ? 'Đang lưu & Khởi động lại...' : 'Lưu & Khởi Động Lại Server'}
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="flex justify-end pt-1">
+            <button
+              type="submit"
+              disabled={updateMutation.isPending}
+              className="flex items-center gap-2 px-6 py-2.5 text-xs font-bold text-[#0F172A] bg-emerald-500 hover:bg-emerald-400 rounded-xl transition-colors shadow-md cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${updateMutation.isPending ? 'animate-spin' : ''}`} aria-hidden="true" />
+              {updateMutation.isPending ? 'Đang lưu & Khởi động lại...' : 'Lưu & Khởi Động Lại Server'}
+            </button>
+          </div>
+        )}
       </form>
     </div>
   );

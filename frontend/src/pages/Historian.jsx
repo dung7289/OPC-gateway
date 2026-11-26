@@ -31,6 +31,7 @@ import {
   clearTagHistory,
 } from '../api/history';
 import StatusBadge from '../components/StatusBadge';
+import useStore from '../store/useStore';
 
 const WINDOWS = [
   { label: '1 giờ', hours: 1 },
@@ -41,6 +42,7 @@ const WINDOWS = [
 
 export default function Historian() {
   const queryClient = useQueryClient();
+  const isAdmin = useStore((s) => s.user?.role === 'admin');
 
   const { data: configData, isLoading: loadingCfg } = useQuery({
     queryKey: ['historyConfig'],
@@ -237,6 +239,7 @@ export default function Historian() {
 
       {/* Config Panel */}
       <form onSubmit={handleSaveConfig} className="glass-panel rounded-xl p-5 border border-slate-800 space-y-4">
+        <fieldset disabled={!isAdmin} className="space-y-4 disabled:opacity-75">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2.5">
             <Database className="w-4 h-4 text-sky-400" />
@@ -330,25 +333,30 @@ export default function Historian() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => sampleNowMutation.mutate()}
-              disabled={sampleNowMutation.isPending}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-sky-200 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-            >
-              <Play className="w-3.5 h-3.5" />
-              {sampleNowMutation.isPending ? 'Đang ghi...' : 'Ghi mẫu ngay'}
-            </button>
-            <button
-              type="submit"
-              disabled={saveConfigMutation.isPending}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-[#0F172A] rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-            >
-              <Save className="w-3.5 h-3.5" />
-              {saveConfigMutation.isPending ? 'Đang lưu...' : 'Lưu cấu hình'}
-            </button>
+            {isAdmin && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => sampleNowMutation.mutate()}
+                  disabled={sampleNowMutation.isPending}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-sky-200 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <Play className="w-3.5 h-3.5" />
+                  {sampleNowMutation.isPending ? 'Đang ghi...' : 'Ghi mẫu ngay'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={saveConfigMutation.isPending}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-[#0F172A] rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {saveConfigMutation.isPending ? 'Đang lưu...' : 'Lưu cấu hình'}
+                </button>
+              </>
+            )}
           </div>
         </div>
+        </fieldset>
       </form>
 
       {/* Query & Chart Panel */}
@@ -409,7 +417,7 @@ export default function Historian() {
               <Download className="w-3.5 h-3.5" />
               Xuất Excel
             </button>
-            {selectedTagId && (
+            {isAdmin && selectedTagId && (
               <button
                 type="button"
                 onClick={() => {

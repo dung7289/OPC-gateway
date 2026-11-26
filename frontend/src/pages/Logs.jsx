@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { Trash2, FileText, Search, RefreshCw, AlertTriangle } from 'lucide-react';
 import client from '../api/client';
 import { formatTimestamp } from '../utils/helpers';
+import useStore from '../store/useStore';
 
 async function fetchLogs(limit = 200) {
   const { data } = await client.get('/api/logs', { params: { limit } });
@@ -36,6 +37,7 @@ const ROW_STYLES = {
 
 export default function Logs() {
   const queryClient = useQueryClient();
+  const isAdmin = useStore((s) => s.user?.role === 'admin');
   const [levelFilter, setLevelFilter] = useState('');
   const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(200);
@@ -87,17 +89,19 @@ export default function Logs() {
             <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
             Refresh
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (window.confirm('Xóa toàn bộ nhật ký hệ thống?')) clearMutation.mutate();
-            }}
-            disabled={clearMutation.isPending}
-            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
-            Clear All
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Xóa toàn bộ nhật ký hệ thống?')) clearMutation.mutate();
+              }}
+              disabled={clearMutation.isPending}
+              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+              Clear All
+            </button>
+          )}
         </div>
       </div>
 

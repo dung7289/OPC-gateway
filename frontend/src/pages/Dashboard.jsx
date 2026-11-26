@@ -207,6 +207,7 @@ const TagTableRow = memo(function TagTableRow({
   tag,
   isSelected,
   chartLimitReached,
+  isAdmin,
   onToggleChart,
   onOpenWrite,
 }) {
@@ -323,10 +324,14 @@ const TagTableRow = memo(function TagTableRow({
       </td>
 
       <td className="px-3 py-2 text-center">
-        {isReadOnly ? (
+        {isReadOnly || !isAdmin ? (
           <span
             className="inline-flex p-1.5 text-slate-500"
-            title="Tag đang khóa Chỉ đọc (Read-Only)"
+            title={
+              !isAdmin
+                ? 'Chỉ tài khoản Admin mới được ghi giá trị'
+                : 'Tag đang khóa Chỉ đọc (Read-Only)'
+            }
           >
             <Lock className="w-3.5 h-3.5" aria-hidden="true" />
           </span>
@@ -544,6 +549,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const { isConnected } = useWebSocket();
   const tagValues = useStore((s) => s.tagValues);
+  const isAdmin = useStore((s) => s.user?.role === 'admin');
 
   const { data: connections = [] } = useQuery({
     queryKey: ['connections'],
@@ -1144,6 +1150,7 @@ export default function Dashboard() {
                               tag={tag}
                               isSelected={selectedTagIds.includes(tag.id)}
                               chartLimitReached={selectedTagIds.length >= MAX_CHARTS}
+                              isAdmin={isAdmin}
                               onToggleChart={toggleTagChart}
                               onOpenWrite={(t, curVal) =>
                                 setWriteTarget({ tag: t, initialValue: curVal })
@@ -1160,7 +1167,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {writeTarget && (
+      {isAdmin && writeTarget && (
         <QuickWriteModal
           tag={writeTarget.tag}
           initialValue={writeTarget.initialValue}

@@ -20,10 +20,13 @@ import logging
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
-from api import connections, logs, tags, websocket, opcua_api, forward_api, history_api, system_api, usr_m100_api
+from api import connections, logs, tags, websocket, opcua_api, forward_api, history_api, system_api, usr_m100_api, auth_api
+from core.auth_service import ensure_default_users, get_user_by_token
 from core.data_logger import DataLogger
 from core.driver_manager import DriverManager
 from core.forward_engine import ForwardEngine
@@ -55,8 +58,9 @@ async def lifespan(app: FastAPI):
     # --- STARTUP ---
     logger.info("=== Industrial Gateway starting ===")
 
-    # 1. Initialize database
+    # 1. Initialize database & seed default RBAC users
     await init_db()
+    await ensure_default_users()
     logger.info("Database initialized")
 
     # 2. Start DriverManager
@@ -111,7 +115,83 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS – allow the React dev server on localhost:5173
+_PUBLIC_API_PATHS = {
+    "/api/health",
+    "/api/auth/login",
+    "/api/auth/login/",
+    "/api/docs",
+    "/api/redoc",
+    "/api/openapi.json",
+}
+
+_VIEWER_ALLOWED_POST_PATHS = {
+    "/api/auth/logout",
+    "/api/auth/logout/",
+    "/api/auth/change-password",
+    "/api/auth/change-password/",
+}
+
+_ADMIN_ONLY_GET_EXACT = {
+    "/api/system/backup",
+    "/api/connections/opc-da/servers",
+    "/api/tags/s7/tia-env",
+    "/api/auth/users",
+}
+
+
+@app.middleware("http")
+async def auth_rbac_middleware(request: Request, call_next):
+    path = request.url.path or "/"
+    method = request.method.upper()
+
+    if method == "OPTIONS" or not path.startswith("/api/"):
+        return await call_next(request)
+
+    if path in _PUBLIC_API_PATHS:
+        return await call_next(request)
+
+    auth_header = request.headers.get("authorization") or ""
+    token = ""
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header[7:].strip()
+
+    user = await get_user_by_token(token)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Vui lòng đăng nhập để tiếp tục."},
+        )
+
+    request.state.user = user
+    request.state.token = token
+
+    if user.get("role") != "admin":
+        norm_path = path.rstrip("/") or "/"
+        if method in ("POST", "PUT", "PATCH", "DELETE"):
+            if not (method == "POST" and path in _VIEWER_ALLOWED_POST_PATHS):
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": "Chỉ tài khoản Quản trị viên (Admin) mới có quyền cấu hình hoặc điều khiển thiết bị."},
+                )
+        elif method == "GET":
+            is_admin_get = (
+                norm_path in _ADMIN_ONLY_GET_EXACT
+                or norm_path.startswith("/api/auth/users/")
+                or "/opc-da/browse" in norm_path
+                or "/opc-da/scan" in norm_path
+                or "/opcua/browse" in norm_path
+                or "/opcua/scan" in norm_path
+            )
+            if is_admin_get:
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": "Chỉ tài khoản Quản trị viên (Admin) mới có quyền truy cập mục này."},
+                )
+
+    return await call_next(request)
+
+
+# CORS – registered after auth_rbac_middleware so CORSMiddleware wraps 401/403 responses cleanly
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -124,13 +204,12 @@ app.add_middleware(
 )
 
 from pathlib import Path
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
 # ---------------------------------------------------------------------------
 # Routers & API
 # ---------------------------------------------------------------------------
 
+app.include_router(auth_api.router)
 app.include_router(connections.router)
 app.include_router(tags.router)
 app.include_router(logs.router)

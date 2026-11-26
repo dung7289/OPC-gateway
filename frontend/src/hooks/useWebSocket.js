@@ -10,17 +10,26 @@ export function useWebSocket() {
   const connectRef = useRef(null);
   const setTagValue = useStore((s) => s.setTagValue);
   const setWsConnected = useStore((s) => s.setWsConnected);
+  const clearAuth = useStore((s) => s.clearAuth);
   const isConnected = useStore((s) => s.wsConnected);
+  const token = useStore((s) => s.token);
+  const user = useStore((s) => s.user);
 
   const connect = useCallback(() => {
-    // Clean up any existing connection
     if (wsRef.current) {
       wsRef.current.onclose = null;
       wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    if (!token || !user) {
+      setWsConnected(false);
+      return;
     }
 
     try {
-      const ws = new WebSocket(WS_URL);
+      const sep = WS_URL.includes('?') ? '&' : '?';
+      const ws = new WebSocket(`${WS_URL}${sep}token=${encodeURIComponent(token)}`);
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -51,8 +60,12 @@ export function useWebSocket() {
         setWsConnected(false);
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         setWsConnected(false);
+        if (event?.code === 4401) {
+          clearAuth();
+          return;
+        }
         reconnectTimerRef.current = setTimeout(() => {
           connectRef.current?.();
         }, RECONNECT_DELAY);
@@ -63,7 +76,7 @@ export function useWebSocket() {
         connectRef.current?.();
       }, RECONNECT_DELAY);
     }
-  }, [setTagValue, setWsConnected]);
+  }, [token, user, setTagValue, setWsConnected, clearAuth]);
 
   useEffect(() => {
     connectRef.current = connect;
@@ -71,10 +84,12 @@ export function useWebSocket() {
     return () => {
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
       }
       if (wsRef.current) {
         wsRef.current.onclose = null;
         wsRef.current.close();
+        wsRef.current = null;
       }
     };
   }, [connect]);

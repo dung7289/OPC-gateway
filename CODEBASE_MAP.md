@@ -21,7 +21,8 @@
 | **Quét cây dự án & Import Tag từ TIA Portal (S7)** | `backend/core/tia_project_scanner.py`<br>`backend/core/tia_openness_export.ps1`<br>`backend/core/s7_importer.py`<br>`frontend/src/components/S7ImportModal.jsx` | `scan_tia_project()`, `scan_multi_files()`, `detect_tia_environment()`<br>`build_s7_project_tree()`, `parse_tia_xml_udt()`<br>2-pane interactive project tree UI (`Scan TIA S7`) |
 | **Driver Siemens S7 (S7-300/1200/1500)** | `backend/drivers/s7_driver.py` | `S7Driver`: hàm `read_tag()`, parse địa chỉ DB/M/I/Q/DBL/DBS |
 | **Driver MQTT & Parse JSON Auto-Tag** | `backend/drivers/mqtt_driver.py`<br>`backend/api/tags.py` | `MQTTDriver`<br>`auto_create_tags_from_json()` & `_extract_tags_from_json()` |
-| **Database SQLite & Schema** | `backend/db/database.py` | `init_db()`: bảng `connections`, `tags`, `tag_groups`, `logs` |
+| **Đăng nhập & Phân quyền RBAC (Admin / Viewer)** | `backend/core/auth_service.py`<br>`backend/api/auth_api.py`<br>`backend/main.py`<br>`frontend/src/pages/Login.jsx` | PBKDF2-SHA256 `hash_password()`, `authenticate_user()`, `auth_rbac_middleware`, Bearer token interceptor & WebSocket `/ws?token=...`, quản lý user tại `SystemSettings.jsx` |
+| **Database SQLite & Schema** | `backend/db/database.py` | `init_db()`: bảng `connections`, `tags`, `tag_groups`, `logs`, `users`, `user_sessions` |
 
 ---
 
@@ -220,6 +221,13 @@
 - **Nội dung:**
   - Cho phép chọn trực tiếp file dự án TIA `.ap11–.ap21`, `.zapXX`, gắn TIA Portal đang mở hoặc nạp nhiều file `.udt + .db/.xml/.xlsx` để duyệt cây `PLC → Program Blocks / PLC Tags → DB → Struct` và click chọn từng tag hoặc `+ Thêm nhánh`.
   - Hiển thị trạng thái quyền nhóm Windows `Siemens TIA Openness` ngay trong modal và hướng dẫn chi tiết cho từng đời TIA V11–V21 trong Web UI (`/docs`) lẫn `HUONG_DAN_VAN_HANH.md`.
+
+### Đợt 21: Trang Đăng nhập (`/login`) & Phân quyền RBAC (`Admin` cấu hình vs `Viewer` chỉ xem)
+- **File thêm / sửa:**
+  - **Backend:** `backend/db/database.py` (thêm bảng `users` & `user_sessions`), `backend/core/auth_service.py` (PBKDF2-HMAC-SHA256 200k vòng lặp, session token hash SHA-256, seed mặc định `admin/admin123` & `viewer/viewer123`, bảo vệ admin cuối cùng), `backend/api/auth_api.py` (`/api/auth/login`, `logout`, `me`, `change-password`, CRUD `/api/auth/users`), `backend/main.py` (`auth_rbac_middleware` kiểm tra Bearer token và chặn 403 mọi API sửa/ghi/backup/scan khi không phải Admin), `backend/api/websocket.py` (xác thực `token` trước khi accept `/ws`), `backend/api/connections.py` / `opcua_api.py` / `forward_api.py` (ẩn mật khẩu đối với `viewer`).
+  - **Frontend:** `frontend/src/pages/Login.jsx`, `frontend/src/api/auth.js`, `frontend/src/api/client.js`, `frontend/src/store/useStore.js`, `frontend/src/hooks/useWebSocket.js`, `frontend/src/App.jsx` (`ProtectedShell`), `frontend/src/components/Layout.jsx` (badge vai trò, nút Đăng xuất, banner Chế độ Chỉ xem), khóa thao tác sửa/ghi/xóa trên `Dashboard.jsx`, `Connections.jsx`, `Tags.jsx`, `Historian.jsx`, `OpcUaSettings.jsx`, `IoTGateway.jsx`, `UsrM100Control.jsx`, `Logs.jsx`, và thêm **Đổi mật khẩu + Quản lý tài khoản** vào `SystemSettings.jsx`; cập nhật `Docs.jsx` & `HUONG_DAN_VAN_HANH.md`.
+- **Nội dung:**
+  - Yêu cầu đăng nhập khi vào phần mềm; chỉ tài khoản `admin` mới được cấu hình kênh/tag/dịch vụ, điều khiển/ghi xuống thiết bị và quản trị người dùng, còn `viewer` chỉ được giám sát realtime, xem biểu đồ/logs và xuất báo cáo.
 
 ---
 

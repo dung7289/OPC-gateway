@@ -15,9 +15,11 @@ import {
 import client from '../api/client';
 import { fetchConnections } from '../api/connections';
 import { formatTimestamp } from '../utils/helpers';
+import useStore from '../store/useStore';
 
 export default function IoTGateway() {
   const queryClient = useQueryClient();
+  const isAdmin = useStore((s) => s.user?.role === 'admin');
 
   const { data: config = {}, isLoading } = useQuery({
     queryKey: ['forwardConfig'],
@@ -154,30 +156,34 @@ export default function IoTGateway() {
             </span>
           </div>
 
-          <button
-            type="button"
-            disabled={toggleMutation.isPending}
-            onClick={() => toggleMutation.mutate(!config.running)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 ${
-              config.running
-                ? 'bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40'
-                : 'bg-emerald-500 hover:bg-emerald-400 text-[#0F172A]'
-            }`}
-          >
-            {config.running ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            {config.running ? 'Dừng' : 'Chạy ngay'}
-          </button>
+          {isAdmin && (
+            <>
+              <button
+                type="button"
+                disabled={toggleMutation.isPending}
+                onClick={() => toggleMutation.mutate(!config.running)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 ${
+                  config.running
+                    ? 'bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40'
+                    : 'bg-emerald-500 hover:bg-emerald-400 text-[#0F172A]'
+                }`}
+              >
+                {config.running ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                {config.running ? 'Dừng' : 'Chạy ngay'}
+              </button>
 
-          <button
-            type="button"
-            disabled={testMutation.isPending}
-            onClick={() => testMutation.mutate()}
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-            title="Đẩy thử 1 gói dữ liệu ngay lập tức"
-          >
-            <Zap className="w-3.5 h-3.5" />
-            {testMutation.isPending ? 'Đang gửi...' : 'Gửi thử'}
-          </button>
+              <button
+                type="button"
+                disabled={testMutation.isPending}
+                onClick={() => testMutation.mutate()}
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                title="Đẩy thử 1 gói dữ liệu ngay lập tức"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                {testMutation.isPending ? 'Đang gửi...' : 'Gửi thử'}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -215,6 +221,7 @@ export default function IoTGateway() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        <fieldset disabled={!isAdmin} className="space-y-5 disabled:opacity-75">
         {/* General Settings */}
         <div className="glass-panel rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -407,16 +414,19 @@ export default function IoTGateway() {
           </div>
         </div>
 
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={saveMutation.isPending}
-            className="flex items-center gap-2 px-6 py-2.5 text-xs font-bold text-[#0F172A] bg-emerald-500 hover:bg-emerald-400 rounded-xl transition-colors shadow-md cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${saveMutation.isPending ? 'animate-spin' : ''}`} />
-            {saveMutation.isPending ? 'Đang lưu...' : 'Lưu & Áp Dụng Cấu Hình'}
-          </button>
-        </div>
+        </fieldset>
+        {isAdmin && (
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={saveMutation.isPending}
+              className="flex items-center gap-2 px-6 py-2.5 text-xs font-bold text-[#0F172A] bg-emerald-500 hover:bg-emerald-400 rounded-xl transition-colors shadow-md cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${saveMutation.isPending ? 'animate-spin' : ''}`} />
+              {saveMutation.isPending ? 'Đang lưu...' : 'Lưu & Áp Dụng Cấu Hình'}
+            </button>
+          </div>
+        )}
       </form>
     </div>
   );

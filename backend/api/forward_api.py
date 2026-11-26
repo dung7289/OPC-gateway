@@ -4,8 +4,9 @@ API endpoints for IoT Gateway (ForwardEngine) configuration, lifecycle, and test
 
 from __future__ import annotations
 
+import copy
 from typing import List, Optional
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
 from core.forward_engine import ForwardEngine
@@ -39,9 +40,16 @@ class ForwardConfigModel(BaseModel):
 
 
 @router.get("/config")
-async def get_forward_config():
+async def get_forward_config(request: Request):
     """Return current IoT Gateway forwarding config and live runtime status."""
-    return ForwardEngine().get_status()
+    st = copy.deepcopy(ForwardEngine().get_status())
+    user = getattr(request.state, "user", None)
+    if user and user.get("role") != "admin":
+        if isinstance(st.get("mqtt"), dict) and st["mqtt"].get("password"):
+            st["mqtt"]["password"] = "••••••"
+        if isinstance(st.get("webhook"), dict) and st["webhook"].get("auth_header"):
+            st["webhook"]["auth_header"] = "••••••"
+    return st
 
 
 @router.put("/config")

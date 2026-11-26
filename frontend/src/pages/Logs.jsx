@@ -169,9 +169,9 @@ export default function Logs() {
             <p className="text-sm">Chưa có nhật ký nào.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[calc(100vh-250px)]">
             <table className="w-full text-xs min-w-[700px]">
-              <thead className="bg-[#0F172A]/80 border-b border-slate-800">
+              <thead className="bg-[#11192A] border-b border-slate-800 sticky top-0 z-10">
                 <tr>
                   <th className="text-left px-4 py-3 font-heading font-semibold text-slate-400 uppercase tracking-wider w-44">Timestamp</th>
                   <th className="text-left px-4 py-3 font-heading font-semibold text-slate-400 uppercase tracking-wider w-24">Level</th>

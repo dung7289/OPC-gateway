@@ -229,6 +229,12 @@
 - **Nội dung:**
   - Yêu cầu đăng nhập khi vào phần mềm; chỉ tài khoản `admin` mới được cấu hình kênh/tag/dịch vụ, điều khiển/ghi xuống thiết bị và quản trị người dùng, còn `viewer` chỉ được giám sát realtime, xem biểu đồ/logs và xuất báo cáo.
 
+### Đợt 22: Cố định tiêu đề bảng khi cuộn (Sticky Table Headers)
+- **CSS toàn cục (`frontend/src/index.css`)**:
+  - Thêm quy tắc `#root table > thead` và `#root table > thead > tr > th` với `position: sticky; top: 0; z-index: 15; background-color: #11192A !important` và đường viền đáy `box-shadow: inset 0 -1px 0 0 rgba(71, 85, 105, 0.85)`, đảm bảo mọi tiêu đề cột luôn ghim cố định và không bị lộ chữ các dòng bên dưới xuyên qua nền header.
+- **Chuẩn hóa khung cuộn có giới hạn chiều cao & gỡ `overflow-hidden` chặn sticky**:
+  - Áp dụng đồng bộ trên toàn bộ 21 bảng dữ liệu thuộc 13 tệp trang & modal: `Dashboard.jsx`, `Connections.jsx`, `Tags.jsx`, `Logs.jsx`, `Historian.jsx`, `SystemSettings.jsx` (2 bảng), `UsrM100Control.jsx` (3 bảng), `Docs.jsx` (5 bảng), `OpcDaBrowserModal.jsx`, `OpcUaBrowserModal.jsx`, `AutoTagModal.jsx`, `FindReplaceModal.jsx`, `S7ImportModal.jsx` (2 bảng).
+
 ---
 
 ## 3. CƠ SỞ DỮ LIỆU SQLITE (`backend/gateway.db`)

@@ -608,7 +608,7 @@ export default function OpcUaBrowserModal({ connections = [], initialConnectionI
             </div>
 
             {/* Candidates Table */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 min-h-0 flex flex-col p-4">
               {importCandidates.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-center text-gray-400 text-xs">
                   <Network className="w-10 h-10 text-gray-300 mb-2" />
@@ -618,9 +618,9 @@ export default function OpcUaBrowserModal({ connections = [], initialConnectionI
                   </p>
                 </div>
               ) : (
-                <div className="border border-gray-200 rounded-lg overflow-hidden shadow-xs">
+                <div className="flex-1 min-h-0 border border-gray-200 rounded-lg overflow-auto shadow-xs">
                   <table className="w-full text-left border-collapse text-xs">
-                    <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold text-[11px]">
+                    <thead className="bg-[#11192A] border-b border-slate-700 text-slate-300 font-semibold text-[11px] sticky top-0 z-10">
                       <tr>
                         <th className="py-2 px-3">TÊN TAG</th>
                         <th className="py-2 px-3">THƯ MỤC</th>

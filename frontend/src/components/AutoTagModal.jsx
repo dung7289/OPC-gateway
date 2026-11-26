@@ -359,9 +359,9 @@ export default function AutoTagModal({
               </div>
 
               {/* Table */}
-              <div className="border border-gray-200 rounded-xl overflow-x-auto max-h-72">
+              <div className="border border-gray-200 rounded-xl overflow-auto max-h-72">
                 <table className="w-full text-left border-collapse text-xs">
-                  <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold sticky top-0 z-10">
+                  <thead className="bg-[#11192A] border-b border-slate-700 text-slate-300 font-semibold sticky top-0 z-10">
                     <tr>
                       <th className="py-2.5 px-3 w-10 text-center">
                         <button type="button" onClick={toggleSelectAll} className="cursor-pointer">

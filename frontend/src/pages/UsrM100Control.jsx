@@ -1607,9 +1607,9 @@ export default function UsrM100Control() {
                 </div>
 
                 {/* Points Buffer Table */}
-                <div className="overflow-x-auto border border-slate-800 rounded-xl">
+                <div className="overflow-auto max-h-[460px] border border-slate-800 rounded-xl">
                   <table className="w-full text-xs">
-                    <thead className="bg-[#0F172A]/90 border-b border-slate-800 text-slate-400">
+                    <thead className="bg-[#11192A] border-b border-slate-800 text-slate-400 sticky top-0 z-10">
                       <tr>
                         {isAdmin && (
                           <th className="px-3 py-2.5 w-8 text-center">
@@ -2123,9 +2123,9 @@ export default function UsrM100Control() {
           </div>
         </div>
 
-        <div className="overflow-x-auto border border-slate-800 rounded-xl">
+        <div className="overflow-auto max-h-[420px] border border-slate-800 rounded-xl">
           <table className="w-full text-xs">
-            <thead className="bg-[#0F172A]/80 border-b border-slate-800 text-slate-400">
+            <thead className="bg-[#11192A] border-b border-slate-800 text-slate-400 sticky top-0 z-10">
               <tr>
                 <th className="px-3.5 py-2.5 text-left font-semibold">Thời gian</th>
                 <th className="px-3.5 py-2.5 text-left font-semibold">Trạm / Nguồn</th>

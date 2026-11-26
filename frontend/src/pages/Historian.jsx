@@ -527,9 +527,9 @@ export default function Historian() {
 
         {/* Recent Samples Table */}
         {recentSamples.length > 0 && (
-          <div className="overflow-x-auto border border-slate-800 rounded-xl">
+          <div className="overflow-auto max-h-[420px] border border-slate-800 rounded-xl">
             <table className="w-full text-xs">
-              <thead className="bg-[#0F172A]/80 border-b border-slate-800">
+              <thead className="bg-[#11192A] border-b border-slate-800 sticky top-0 z-10">
                 <tr>
                   <th className="text-left px-4 py-2.5 text-slate-400 font-semibold">Thời gian</th>
                   <th className="text-left px-4 py-2.5 text-slate-400 font-semibold">Giá trị</th>

@@ -1087,9 +1087,9 @@ export default function S7ImportModal({
                             : `Biến trực tiếp trong mục này (${visibleLeaves.length})`}
                         </span>
                       </div>
-                      <div className="border border-slate-800 rounded-xl overflow-hidden bg-[#0F172A]/90">
+                      <div className="border border-slate-800 rounded-xl overflow-auto max-h-[52vh] bg-[#0F172A]/90">
                         <table className="w-full text-left border-collapse">
-                          <thead className="bg-[#1B2336] border-b border-slate-800 text-[10px] uppercase text-slate-400">
+                          <thead className="bg-[#1B2336] border-b border-slate-800 text-[10px] uppercase text-slate-400 sticky top-0 z-10">
                             <tr>
                               <th className="px-2.5 py-2 w-8">
                                 <button
@@ -1194,7 +1194,7 @@ export default function S7ImportModal({
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3">
+            <div className="flex-1 min-h-0 flex flex-col p-3">
               {stagedTags.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center px-6 text-slate-500 space-y-2">
                   <Database className="w-9 h-9 text-slate-700" />
@@ -1205,9 +1205,9 @@ export default function S7ImportModal({
                   </p>
                 </div>
               ) : (
-                <div className="border border-slate-800 rounded-xl overflow-hidden bg-[#0F172A]">
+                <div className="flex-1 min-h-0 border border-slate-800 rounded-xl overflow-auto bg-[#0F172A]">
                   <table className="w-full text-left border-collapse">
-                    <thead className="bg-[#1B2336] border-b border-slate-800 text-[10px] uppercase text-slate-400">
+                    <thead className="bg-[#1B2336] border-b border-slate-800 text-[10px] uppercase text-slate-400 sticky top-0 z-10">
                       <tr>
                         <th className="px-2 py-2">Thư mục (Tag Group)</th>
                         <th className="px-2 py-2">Tên Tag</th>

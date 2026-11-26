@@ -115,9 +115,9 @@ export default function FindReplaceModal({ tagIds = [], onClose, onSuccess }) {
               {preview.changes.length === 0 ? (
                 <div className="p-4 text-center text-slate-400">Không có giá trị nào chứa "{findText}".</div>
               ) : (
-                <div className="max-h-60 overflow-y-auto">
+                <div className="max-h-60 overflow-auto">
                   <table className="w-full text-left text-[11px]">
-                    <thead className="bg-[#11192A] text-slate-400">
+                    <thead className="bg-[#11192A] text-slate-400 sticky top-0 z-10">
                       <tr>
                         <th className="px-3 py-1.5">Tag</th>
                         <th className="px-3 py-1.5">Giá trị cũ</th>

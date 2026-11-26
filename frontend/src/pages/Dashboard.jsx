@@ -1110,9 +1110,9 @@ export default function Dashboard() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[calc(100vh-230px)]">
               <table className="w-full text-xs">
-                <thead className="bg-[#0F172A] border-b border-slate-800 text-slate-400">
+                <thead className="bg-[#11192A] border-b border-slate-800 text-slate-400 sticky top-0 z-10">
                   <tr>
                     <th className="px-3 py-2.5 w-14 text-center font-semibold">Biểu đồ</th>
                     <th className="px-3 py-2.5 text-left font-semibold">Tên Tag</th>

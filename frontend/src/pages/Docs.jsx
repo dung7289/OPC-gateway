@@ -248,9 +248,9 @@ export default function Docs() {
 
               <div className="space-y-3">
                 <h3 className="font-heading text-sm font-bold text-slate-100">Cách khởi chạy bản Portable</h3>
-                <div className="overflow-x-auto border border-slate-800 rounded-xl">
+                <div className="overflow-auto max-h-[460px] border border-slate-800 rounded-xl">
                   <table className="w-full text-xs">
-                    <thead className="bg-[#0F172A] border-b border-slate-800 text-slate-400">
+                    <thead className="bg-[#11192A] border-b border-slate-800 text-slate-400 sticky top-0 z-10">
                       <tr>
                         <th className="text-left px-4 py-2.5 font-semibold">Tình huống sử dụng</th>
                         <th className="text-left px-4 py-2.5 font-semibold">File cần chạy</th>
@@ -389,9 +389,9 @@ export default function Docs() {
                 subtitle="Bảng cú pháp địa chỉ chuẩn xác theo từng driver, thao tác nhanh hàng nghìn tag giống Kepware."
               />
 
-              <div className="overflow-x-auto border border-slate-800 rounded-xl">
+              <div className="overflow-auto max-h-[460px] border border-slate-800 rounded-xl">
                 <table className="w-full text-xs">
-                  <thead className="bg-[#0F172A] border-b border-slate-800 text-slate-400">
+                  <thead className="bg-[#11192A] border-b border-slate-800 text-slate-400 sticky top-0 z-10">
                     <tr>
                       <th className="px-4 py-2.5 text-left font-semibold">Giao thức</th>
                       <th className="px-4 py-2.5 text-left font-semibold">Cú pháp Address</th>
@@ -507,9 +507,9 @@ export default function Docs() {
                       </p>
                     </div>
 
-                    <div className="overflow-x-auto border border-slate-800 rounded-xl">
+                    <div className="overflow-auto max-h-[460px] border border-slate-800 rounded-xl">
                       <table className="w-full text-[11px]">
-                        <thead className="bg-[#0B1120] text-slate-400 border-b border-slate-800">
+                        <thead className="bg-[#11192A] text-slate-400 border-b border-slate-800 sticky top-0 z-10">
                           <tr>
                             <th className="px-2.5 py-1.5 text-left">Phiên bản TIA</th>
                             <th className="px-2.5 py-1.5 text-left">Quét trực tiếp .apXX / .zapXX</th>
@@ -844,9 +844,9 @@ export default function Docs() {
                 subtitle="Danh sách API tích hợp Web SCADA ngoài và 9 lỗi thường gặp khi triển khai hiện trường."
               />
 
-              <div className="overflow-x-auto border border-slate-800 rounded-xl">
+              <div className="overflow-auto max-h-[460px] border border-slate-800 rounded-xl">
                 <table className="w-full text-xs">
-                  <thead className="bg-[#0F172A] border-b border-slate-800 text-slate-400">
+                  <thead className="bg-[#11192A] border-b border-slate-800 text-slate-400 sticky top-0 z-10">
                     <tr>
                       <th className="px-4 py-2.5 text-left font-semibold">Method &amp; Path</th>
                       <th className="px-4 py-2.5 text-left font-semibold">Chức năng</th>
@@ -909,9 +909,9 @@ export default function Docs() {
                 <h3 className="font-heading text-sm font-bold text-slate-100 flex items-center gap-2">
                   <Terminal className="w-4 h-4 text-amber-400" /> Bảng Xử lý Sự cố Nhanh (Troubleshooting)
                 </h3>
-                <div className="overflow-x-auto border border-slate-800 rounded-xl">
+                <div className="overflow-auto max-h-[460px] border border-slate-800 rounded-xl">
                   <table className="w-full text-xs">
-                    <thead className="bg-[#0F172A] border-b border-slate-800 text-slate-400">
+                    <thead className="bg-[#11192A] border-b border-slate-800 text-slate-400 sticky top-0 z-10">
                       <tr>
                         <th className="px-4 py-2.5 text-left font-semibold">Triệu chứng</th>
                         <th className="px-4 py-2.5 text-left font-semibold">Nguyên nhân phổ biến</th>

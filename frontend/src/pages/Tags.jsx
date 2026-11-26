@@ -1679,7 +1679,7 @@ export default function Tags() {
           </div>
 
           {/* Bảng Tags */}
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[calc(100vh-245px)]">
             {isLoading ? (
               <div className="flex items-center justify-center h-48 text-gray-400">
                 <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -1708,7 +1708,7 @@ export default function Tags() {
               </div>
             ) : (
               <table className="w-full text-left text-xs min-w-[740px]">
-                <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase font-semibold">
+                <thead className="bg-[#11192A] border-b border-slate-800 text-slate-400 uppercase font-semibold sticky top-0 z-10">
                   <tr>
                     {isAdmin && (
                       <th className="pl-4 pr-2 py-2.5 w-8">

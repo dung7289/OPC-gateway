@@ -80,6 +80,10 @@ Truy cập **Connections** → **Add Connection**:
 - **Lưu ý TIA Portal (Bắt buộc):**
   - Bật **Permit access with PUT/GET communication from remote partner** trong *Device Configuration → Protection & Security*.
   - Bỏ tích **Optimized block access** trong *Properties → Attributes* của các Data Block (DB) cần đọc/ghi.
+- **Import hàng loạt Tag trực tiếp từ TIA Portal (`/tags` → nút `Import TIA S7`):**
+  - **File Source Data Block / UDT (`.db`, `.scl`, `.awl`, `.udt`):** Trong TIA Portal chuột phải vào DB → *Generate source from blocks* → nạp file vào Gateway để tự động tính Offset (`Bool`, `Byte`, `Int`, `UInt`/`Word`, `DInt`/`DWord`/`Time`, `Real`, `LReal`, `String`, `Struct` lồng nhau và `Array`).
+  - **Bảng PLC Tags (`.xlsx`, `.xml`) & STEP 7 (`.sdf`):** Vào *PLC tags → Export* trong TIA Portal để nạp toàn bộ vùng nhớ `%I`, `%Q`, `%M`.
+  - **Dán trực tiếp từ TIA DB Editor:** Copy trực tiếp các dòng trong bảng DB (khi đã tắt Optimized và Compile để hiện cột `Offset`) rồi dán sang tab *Dán bảng DB / Source* để lấy địa chỉ S7 chính xác 100%.
 
 ### 4.2 Modbus TCP & Modbus RTU
 - **Modbus TCP:** Nhập `Host` (IP) và `Port` (`502`).
@@ -113,7 +117,7 @@ Truy cập **Connections** → **Add Connection**:
 ### 5.1 Bảng cú pháp Address chuẩn
 | Giao thức | Cú pháp Address | Ví dụ |
 |---|---|---|
-| Siemens S7 | `DB<n>.DBX<b>.<bit>`, `DB<n>.DBB<b>`, `DB<n>.DBW<b>`, `DB<n>.DBD<b>`, `M<b>.<bit>`, `Q<b>.<bit>`, `I<b>.<bit>` | `DB24.DBX22.0`, `DB21.DBD158`, `DB1.DBW0`, `M0.0` |
+| Siemens S7 | `DB<n>.DBX<b>.<bit>`, `DB<n>.DBB<b>`, `DB<n>.DBW<b>`, `DB<n>.DBD<b>`, `DB<n>.DBL<b>`, `DB<n>.DBS<b>.<len>`, `[%](I\|Q\|M)[X/B/W/D/L]<b>` | `DB24.DBX22.0`, `DB21.DBD158`, `DB1.DBS20.24`, `%I0.0`, `%MW10`, `%MD20` |
 | Modbus TCP/RTU | `HR:<offset>`, `CO:<offset>`, `IR:<offset>`, `DI:<offset>` | `HR:0`, `HR:40`, `CO:5`, `IR:10` |
 | MQTT | `<topic>:<json_path>` hoặc `<topic>` | `sensor/data:BOM_1.ACK`, `telemetry:$.temp` |
 | OPC-DA | Exact OPC Item ID | `Channel1.Device1.TagName` |

@@ -98,3 +98,26 @@ export const findReplaceTags = async (payload) => {
   return data;
 };
 
+export const parseS7Text = async (payload) => {
+  const { data } = await client.post('/api/tags/s7/parse', payload);
+  return data;
+};
+
+export const parseS7File = async (file, { db_number, default_group, scan_rate_ms } = {}) => {
+  const fd = new FormData();
+  fd.append('file', file);
+  if (db_number !== '' && db_number !== null && db_number !== undefined) {
+    fd.append('db_number', String(db_number));
+  }
+  if (default_group) {
+    fd.append('default_group', default_group);
+  }
+  if (scan_rate_ms) {
+    fd.append('scan_rate_ms', String(scan_rate_ms));
+  }
+  const { data } = await client.post('/api/tags/s7/parse-file', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+};
+

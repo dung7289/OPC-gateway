@@ -19,10 +19,11 @@ import time
 from typing import Any, List, Optional
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field, field_validator
 
 from api.logs import add_log
+from core.s7_importer import parse_s7_bytes, parse_s7_text
 from core.tag_engine import TagEngine, TagReadOnlyError
 from db.database import get_db
 from models.tag import DataType, TagCreate, TagResponse, TagUpdate, _check_access, _check_scale_type
@@ -1285,3 +1286,89 @@ async def scan_topic_for_tags(payload: MqttScanRequest):
         source=source,
         message=f"Đã quét thành công {len(candidates)} node tag từ {source}."
     )
+
+
+# ------------------------------------------------------------------
+# Siemens TIA Portal / STEP 7 Tag Importer
+# ------------------------------------------------------------------
+
+class S7ParseTextRequest(BaseModel):
+    text: str = Field(..., min_length=1)
+    filename: str = ""
+    db_number: Optional[int] = Field(default=None, ge=1, le=65535)
+    default_group: str = ""
+    scan_rate_ms: int = Field(default=100, ge=50, le=60000)
+
+
+class S7TagCandidate(BaseModel):
+    name: str
+    address: str
+    data_type: str
+    tag_group: str = ""
+    description: str = ""
+    tia_type: str = ""
+    offset_str: str = ""
+    scan_rate_ms: int = 100
+
+
+class S7ParseResponse(BaseModel):
+    detected_format: str
+    db_number: Optional[int] = None
+    db_name: str = ""
+    optimized_warning: bool = False
+    warnings: List[str] = Field(default_factory=list)
+    candidates: List[S7TagCandidate] = Field(default_factory=list)
+    message: str
+
+
+@router.post("/s7/parse", response_model=S7ParseResponse)
+@router.post("/s7/parse/", response_model=S7ParseResponse)
+async def parse_s7_text_endpoint(payload: S7ParseTextRequest):
+    """Parse pasted TIA Portal DB Editor text, .db/.scl/.udt source, .xml or .sdf symbol text."""
+    try:
+        res = parse_s7_text(
+            text=payload.text,
+            filename=payload.filename,
+            db_number=payload.db_number,
+            default_group=payload.default_group,
+            scan_rate_ms=payload.scan_rate_ms,
+        )
+        return S7ParseResponse(**res)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.exception("S7 text parse error")
+        raise HTTPException(status_code=400, detail=f"Lỗi phân tích dữ liệu S7: {exc}")
+
+
+@router.post("/s7/parse-file", response_model=S7ParseResponse)
+@router.post("/s7/parse-file/", response_model=S7ParseResponse)
+async def parse_s7_file_endpoint(
+    file: UploadFile = File(...),
+    db_number: Optional[int] = Form(default=None),
+    default_group: str = Form(default=""),
+    scan_rate_ms: int = Form(default=100),
+):
+    """Parse uploaded TIA Portal / STEP 7 file (.db, .scl, .awl, .udt, .xml, .xlsx, .sdf)."""
+    if db_number is not None and (db_number < 1 or db_number > 65535):
+        raise HTTPException(status_code=400, detail="Số DB phải nằm trong khoảng 1..65535")
+    scan_clamped = max(50, min(60000, int(scan_rate_ms)))
+
+    raw = await file.read()
+    if len(raw) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File quá lớn (tối đa 10 MB)")
+
+    try:
+        res = parse_s7_bytes(
+            raw_bytes=raw,
+            filename=file.filename or "",
+            db_number=db_number,
+            default_group=default_group,
+            scan_rate_ms=scan_clamped,
+        )
+        return S7ParseResponse(**res)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.exception("S7 file parse error [%s]", file.filename)
+        raise HTTPException(status_code=400, detail=f"Lỗi đọc file S7 '{file.filename}': {exc}")

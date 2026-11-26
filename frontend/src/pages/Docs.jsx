@@ -326,6 +326,11 @@ export default function Docs() {
                   <Callout variant="warn" title="Bắt buộc trên TIA Portal">
                     Tích chọn <strong>Permit access with PUT/GET communication from remote partner</strong> trong Device Configuration &rarr; Protection, và bỏ tích <strong>Optimized block access</strong> ở thuộc tính của Data Block (DB) cần đọc.
                   </Callout>
+                  <div className="text-[11px] text-slate-300 bg-slate-900 border border-slate-800 rounded-lg p-2.5 space-y-1">
+                    <div className="font-semibold text-amber-300">Import Tag tự động từ TIA Portal (<code>/tags</code> &rarr; <strong>Import TIA S7</strong>):</div>
+                    <div>• Chuột phải DB &rarr; <em>Generate source from blocks</em> (<code>.db/.scl/.udt</code>) hoặc <em>PLC tags &rarr; Export</em> (<code>.xlsx/.xml</code>).</div>
+                    <div>• Hoặc bôi đen bảng DB (cột <code>Name</code>, <code>Data type</code>, <code>Offset</code>) trong TIA Portal và dán trực tiếp để sinh toàn bộ Tag + Thư mục.</div>
+                  </div>
                 </div>
 
                 <div className="bg-[#0F172A]/80 border border-slate-800 rounded-xl p-4 space-y-2">
@@ -396,9 +401,9 @@ export default function Docs() {
                   <tbody className="divide-y divide-slate-800/80 text-slate-300">
                     <tr>
                       <td className="px-4 py-2.5 font-semibold text-amber-300">Siemens S7</td>
-                      <td className="px-4 py-2.5 font-mono">DB&lt;n&gt;.DBX&lt;b&gt;.&lt;bit&gt;, DB&lt;n&gt;.DBB&lt;b&gt;, DB&lt;n&gt;.DBW&lt;b&gt;, DB&lt;n&gt;.DBD&lt;b&gt;, M&lt;b&gt;.&lt;bit&gt;, Q&lt;b&gt;.&lt;bit&gt;, I&lt;b&gt;.&lt;bit&gt;</td>
-                      <td className="px-4 py-2.5 font-mono text-sky-300">DB24.DBX22.0 · DB21.DBD158 · DB1.DBW0 · M0.0</td>
-                      <td className="px-4 py-2.5 font-mono">bool, int16, int32, float32</td>
+                      <td className="px-4 py-2.5 font-mono">DB&lt;n&gt;.DBX&lt;b&gt;.&lt;bit&gt;, DBB/DBW/DBD/DBL, DBS&lt;b&gt;.&lt;len&gt;, [%](I|Q|M)[X/B/W/D]&lt;b&gt;</td>
+                      <td className="px-4 py-2.5 font-mono text-sky-300">DB24.DBX22.0 · DB21.DBD158 · DB1.DBS20.24 · %I0.0 · %MW10</td>
+                      <td className="px-4 py-2.5 font-mono">bool, int16, uint16, int32, float32, float64, string</td>
                     </tr>
                     <tr>
                       <td className="px-4 py-2.5 font-semibold text-sky-300">Modbus TCP/RTU</td>

@@ -205,6 +205,13 @@
   - Chuyển đổi danh sách Live Tags trên Dashboard từ dạng thẻ phẳng sang **bảng dữ liệu công nghiệp phân nhóm theo từng Kênh & Thư mục (`tag_group`)**, hỗ trợ thư mục đa cấp (vd `DAIPHUC/tram2`), đếm tỷ lệ `Good / Total` trên mỗi header thư mục, ghim biểu đồ realtime và ghi nhanh giá trị (`PenLine`) ngay trên từng dòng tag.
   - Sửa triệt để các lỗi tiềm ẩn ở Backend (Nhóm A), tối ưu hiệu năng CPU/Disk/SQLite khi chạy 24/7 (Nhóm B) và xử lý sạch toàn bộ cảnh báo `oxlint` trên toàn bộ 33 file Frontend (`0 warnings, 0 errors`).
 
+### Đợt 19: Import Tag tự động từ file lập trình Siemens TIA Portal (S7) & nâng cấp S7Driver
+- **File thêm / sửa:**
+  - **Backend:** `backend/core/s7_importer.py` (parser `.db`/`.scl`/`.awl`/`.udt` kèm bộ tính Offset chuẩn Siemens S7 Classic, `.xml` Openness GlobalDB/PlcTagTable, `.xlsx` PLC Tags bằng stdlib, Copy-Paste bảng Offset từ TIA DB Editor và STEP 7 `.sdf`), `backend/drivers/s7_driver.py` (hỗ trợ tiền tố `%`, `%IB/%IW/%ID/%QB/%QW/%QD/%MB/%MW/%MD`, `DBL`, `DBS<b >.<len>`, `uint16`, `float64`, Siemens `String`), `backend/api/tags.py` (`POST /api/tags/s7/parse`, `POST /api/tags/s7/parse-file`).
+  - **Frontend:** `frontend/src/components/S7ImportModal.jsx`, `frontend/src/api/tags.js`, `frontend/src/pages/Tags.jsx` (nút **Import TIA S7**), `frontend/src/pages/Docs.jsx`, `HUONG_DAN_VAN_HANH.md`.
+- **Nội dung:**
+  - Cho phép nhập hàng loạt Tag S7 trực tiếp từ file dự án xuất bởi TIA Portal hoặc dán bảng DB có cột Offset mà không cần gõ tay từng biến hay cài TIA Portal trên máy Gateway.
+
 ---
 
 ## 3. CƠ SỞ DỮ LIỆU SQLITE (`backend/gateway.db`)

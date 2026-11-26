@@ -121,3 +121,37 @@ export const parseS7File = async (file, { db_number, default_group, scan_rate_ms
   return data;
 };
 
+export const fetchTiaEnv = async () => {
+  const { data } = await client.get('/api/tags/s7/tia-env', { timeout: 25000 });
+  return data;
+};
+
+export const browseLocalTiaFile = async () => {
+  const { data } = await client.post('/api/tags/s7/browse-local-file', {}, { timeout: 130000 });
+  return data;
+};
+
+export const scanTiaProject = async (payload) => {
+  const { data } = await client.post('/api/tags/s7/scan-project', payload, { timeout: 190000 });
+  return data;
+};
+
+export const scanS7Files = async (files, { db_number, default_group, scan_rate_ms } = {}) => {
+  const fd = new FormData();
+  Array.from(files || []).forEach((file) => fd.append('files', file));
+  if (db_number !== '' && db_number !== null && db_number !== undefined) {
+    fd.append('db_number', String(db_number));
+  }
+  if (default_group) {
+    fd.append('default_group', default_group);
+  }
+  if (scan_rate_ms) {
+    fd.append('scan_rate_ms', String(scan_rate_ms));
+  }
+  const { data } = await client.post('/api/tags/s7/scan-files', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 190000,
+  });
+  return data;
+};
+

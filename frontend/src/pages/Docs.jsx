@@ -5,6 +5,7 @@ import {
   BookOpen,
   CheckCircle2,
   Code2,
+  Cpu,
   FileSpreadsheet,
   HardDriveDownload,
   History,
@@ -34,13 +35,13 @@ const SECTIONS = [
     id: 'connections',
     label: '2. Kết nối Thiết bị & Auto-Demotion',
     icon: Plug,
-    keywords: 'siemens s7 modbus tcp rtu float32 swap cdab badc mqtt opc da opc ua internal auto demotion reconnect',
+    keywords: 'siemens s7 tia portal ap11 ap16 ap17 ap18 ap21 zap16 openness modbus tcp rtu float32 swap cdab badc mqtt opc da opc ua internal auto demotion reconnect',
   },
   {
     id: 'tags',
     label: '3. Quản lý Tag, Thư mục & Bulk Edit',
     icon: Tag,
-    keywords: 'address syntax folder group copy paste ctrl+c ctrl+v bulk edit find replace dry run excel import export',
+    keywords: 'address syntax folder group copy paste ctrl+c ctrl+v bulk edit find replace dry run excel import export scan tia s7 ap16 ap17 ap18 ap21 zap openness',
   },
   {
     id: 'scaling_internal',
@@ -327,9 +328,9 @@ export default function Docs() {
                     Tích chọn <strong>Permit access with PUT/GET communication from remote partner</strong> trong Device Configuration &rarr; Protection, và bỏ tích <strong>Optimized block access</strong> ở thuộc tính của Data Block (DB) cần đọc.
                   </Callout>
                   <div className="text-[11px] text-slate-300 bg-slate-900 border border-slate-800 rounded-lg p-2.5 space-y-1">
-                    <div className="font-semibold text-amber-300">Import Tag tự động từ TIA Portal (<code>/tags</code> &rarr; <strong>Import TIA S7</strong>):</div>
-                    <div>• Chuột phải DB &rarr; <em>Generate source from blocks</em> (<code>.db/.scl/.udt</code>) hoặc <em>PLC tags &rarr; Export</em> (<code>.xlsx/.xml</code>).</div>
-                    <div>• Hoặc bôi đen bảng DB (cột <code>Name</code>, <code>Data type</code>, <code>Offset</code>) trong TIA Portal và dán trực tiếp để sinh toàn bộ Tag + Thư mục.</div>
+                    <div className="font-semibold text-amber-300">Scan cây dự án TIA Portal (<code>/tags</code> &rarr; <strong>Scan TIA S7</strong>):</div>
+                    <div>• Chọn trực tiếp file dự án <code className="text-sky-300">.ap11–.ap21</code> / <code className="text-sky-300">.zapXX</code> trên máy, gắn vào <strong>TIA Portal đang mở</strong>, hoặc nạp nhiều file xuất (<code className="text-sky-300">.db / .udt / .xml / .xlsx</code>).</div>
+                    <div>• Duyệt cây <strong>Program Blocks / DB / Struct / PLC Tags</strong> 2 cột, click tích chọn từng biến hoặc <strong>+ Thêm nhánh</strong> giống hệt Scan OPC-DA / OPC-UA. Xem chi tiết tại mục <strong>3. Quản lý Tag</strong>.</div>
                   </div>
                 </div>
 
@@ -459,6 +460,87 @@ export default function Docs() {
                     <li>• <strong>Excel Export / Import:</strong> Nút <strong>Export Excel</strong> xuất đầy đủ cả cột <code className="text-slate-200">Access (rw/ro)</code>, <code className="text-slate-200">Unit</code>, <code className="text-slate-200">Scale Type</code>, <code className="text-slate-200">Log Enabled</code>; nút <strong>Import Excel</strong> tự động bỏ qua/cập nhật chống trùng lặp.</li>
                   </ul>
                 </div>
+              </div>
+
+              {/* Hướng dẫn chi tiết Scan TIA Portal (.ap11 - .ap21 / .zapXX) */}
+              <div className="bg-[#0F172A]/85 border border-amber-500/30 rounded-xl p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                  <h3 className="font-heading text-sm font-bold text-amber-300 flex items-center gap-2">
+                    <Cpu className="w-4 h-4" /> Quét cây dự án Siemens TIA Portal (.ap11–.ap21 / .zapXX) — Scan TIA S7
+                  </h3>
+                  <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    2-Pane Tree Browser giống Scan OPC
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs text-slate-300">
+                  <div className="space-y-2">
+                    <div className="font-semibold text-slate-100">Quy trình 4 bước chọn Tag trên cây dự án:</div>
+                    <ol className="list-decimal pl-4 space-y-1.5 leading-relaxed">
+                      <li>Vào trang <strong>Tags</strong> (<code className="text-sky-300">/tags</code>) &rarr; nhấn nút <strong className="text-amber-300">Scan TIA S7</strong> trên thanh công cụ.</li>
+                      <li>
+                        Chọn 1 trong 3 nguồn đầu vào:
+                        <ul className="list-disc pl-4 mt-1 space-y-0.5 text-slate-400">
+                          <li><strong>Dự án TIA (.ap11–.ap21 / .zapXX):</strong> Bấm <strong>Chọn file trên máy</strong> để chọn file dự án gốc (Gateway luôn sao chép ra thư mục tạm để quét, <em>không làm hỏng file gốc</em>), hoặc tải file nén <strong>.zapXX</strong>, hoặc bấm nút <strong>Quét TIA đang mở</strong> nếu đang mở sẵn dự án trên TIA Portal.</li>
+                          <li><strong>Nhiều file xuất:</strong> Chọn cùng lúc file <code>.udt</code> và các file <code>.db / .scl / .xml / .xlsx / .sdf</code> để tự giải mã Offset kể cả khi máy không cài TIA Portal.</li>
+                          <li><strong>Dán bảng DB / Source:</strong> Dán bảng DB có cột Offset từ TIA DB Editor hoặc bấm <strong>Nạp mẫu TIA Portal DB</strong> để duyệt cây ngay.</li>
+                        </ul>
+                      </li>
+                      <li>Ở <strong>Cột Trái (Cây dự án)</strong>: click mở từng nhánh <em>PLC &rarr; Program Blocks / PLC Tags &rarr; DB &rarr; Struct</em>, tích chọn biến lẻ hoặc bấm <strong>+ Thêm nhánh</strong> để đẩy sang <strong>Cột Phải</strong>.</li>
+                      <li>Kiểm tra/sửa tên thư mục (<code>Tag Group</code>), tên Tag, chu kỳ quét ở Cột Phải &rarr; nhấn <strong>Import Tag vào Gateway</strong>.</li>
+                    </ol>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="bg-slate-900 border border-amber-500/30 rounded-xl p-3.5 space-y-1.5">
+                      <div className="font-semibold text-amber-300 text-xs">
+                        Cấp quyền Siemens TIA Openness (làm 1 lần duy nhất cho file .ap14–.ap21)
+                      </div>
+                      <p className="text-[11px] text-slate-300 leading-relaxed">
+                        Siemens yêu cầu tài khoản Windows thuộc nhóm bảo mật <strong>Siemens TIA Openness</strong>. Mở <strong>PowerShell (Run as Administrator)</strong> và chạy:
+                      </p>
+                      <code className="block bg-[#0B1120] border border-slate-800 rounded px-2.5 py-1.5 font-mono text-[11px] text-emerald-300 select-all">
+                        Add-LocalGroupMember -Group &quot;Siemens TIA Openness&quot; -Member &quot;$env:USERNAME&quot;
+                      </code>
+                      <p className="text-[11px] text-slate-400">
+                        Sau khi chạy, <strong>Sign out / đăng nhập lại Windows</strong> 1 lần. Lần quét đầu tiên nếu TIA Portal bật hộp thoại Openness Access, nhấn <strong>Yes to all</strong>.
+                      </p>
+                    </div>
+
+                    <div className="overflow-x-auto border border-slate-800 rounded-xl">
+                      <table className="w-full text-[11px]">
+                        <thead className="bg-[#0B1120] text-slate-400 border-b border-slate-800">
+                          <tr>
+                            <th className="px-2.5 py-1.5 text-left">Phiên bản TIA</th>
+                            <th className="px-2.5 py-1.5 text-left">Quét trực tiếp .apXX / .zapXX</th>
+                            <th className="px-2.5 py-1.5 text-left">Cách dùng khuyến nghị</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/80 text-slate-300">
+                          <tr>
+                            <td className="px-2.5 py-1.5 font-semibold text-emerald-300">V16 – V21</td>
+                            <td className="px-2.5 py-1.5">Đọc trực tiếp qua TIA Openness + Attach</td>
+                            <td className="px-2.5 py-1.5">Chọn file .apXX hoặc Quét TIA đang mở</td>
+                          </tr>
+                          <tr>
+                            <td className="px-2.5 py-1.5 font-semibold text-sky-300">V14 – V15.1</td>
+                            <td className="px-2.5 py-1.5">Đọc qua Openness (nếu cài bản tương thích / nâng cấp tạm)</td>
+                            <td className="px-2.5 py-1.5">Chọn .apXX/.zapXX hoặc xuất .db/.xlsx</td>
+                          </tr>
+                          <tr>
+                            <td className="px-2.5 py-1.5 font-semibold text-amber-300">V11 – V13</td>
+                            <td className="px-2.5 py-1.5">Chưa có Openness API (Siemens bổ sung từ V14)</td>
+                            <td className="px-2.5 py-1.5">Nâng cấp qua V13 SP2 &rarr; V14+ hoặc xuất .db / .xlsx / Copy-Paste vào cùng cây 2 cột</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <Callout variant="warn" title="Nhắc nhở bắt buộc khi đọc PLC Siemens S7 thật (PUT/GET &amp; Non-Optimized DB)">
+                  Việc quét cây từ file TIA Portal giúp lấy chính xác Offset địa chỉ, nhưng để PLC S7-1200 / S7-1500 cho phép Gateway đọc thực tế qua mạng: hãy bật <strong>PUT/GET</strong> trong CPU Protection và chuột phải Data Block &rarr; <strong>Properties &rarr; Attributes &rarr; bỏ tích Optimized block access</strong> rồi Compile &amp; Download xuống PLC. Lưu ý nếu copy file <code>.apXX</code> đi nơi khác phải copy cả thư mục dự án (chứa <code>System\PEData.plf</code>) hoặc dùng <em>Project &rarr; Archive (.zapXX)</em>.
+                </Callout>
               </div>
             </div>
           )}

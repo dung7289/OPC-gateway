@@ -18,7 +18,8 @@
 | **OPC-UA Server cho SCADA (Cổng mạng, bảo mật, auto-fallback)** | `backend/core/opcua_server.py`<br>`backend/api/opcua_api.py`<br>`frontend/src/pages/OpcUaSettings.jsx` | `OpcUaServerService`: `start()`, `stop()`, `_is_port_in_use()`<br>`opcua_api.py`: `/config`, `/start`, `/stop`<br>`OpcUaSettings.jsx`: UI cài đặt, cảnh báo cổng |
 | **Khởi động Gateway khi mở ứng dụng** | `backend/main.py` | `lifespan()`: khởi tạo DB, DriverManager, TagEngine, ForwardEngine, OpcUaServerService |
 | **Driver Modbus TCP** | `backend/drivers/modbus_driver.py` | `ModbusDriver`: hàm `read_tag()`, `write_tag()` |
-| **Driver Siemens S7 (S7-300/1200/1500)** | `backend/drivers/s7_driver.py` | `S7Driver`: hàm `read_tag()`, parse địa chỉ DB/M/I/Q |
+| **Quét cây dự án & Import Tag từ TIA Portal (S7)** | `backend/core/tia_project_scanner.py`<br>`backend/core/tia_openness_export.ps1`<br>`backend/core/s7_importer.py`<br>`frontend/src/components/S7ImportModal.jsx` | `scan_tia_project()`, `scan_multi_files()`, `detect_tia_environment()`<br>`build_s7_project_tree()`, `parse_tia_xml_udt()`<br>2-pane interactive project tree UI (`Scan TIA S7`) |
+| **Driver Siemens S7 (S7-300/1200/1500)** | `backend/drivers/s7_driver.py` | `S7Driver`: hàm `read_tag()`, parse địa chỉ DB/M/I/Q/DBL/DBS |
 | **Driver MQTT & Parse JSON Auto-Tag** | `backend/drivers/mqtt_driver.py`<br>`backend/api/tags.py` | `MQTTDriver`<br>`auto_create_tags_from_json()` & `_extract_tags_from_json()` |
 | **Database SQLite & Schema** | `backend/db/database.py` | `init_db()`: bảng `connections`, `tags`, `tag_groups`, `logs` |
 
@@ -211,6 +212,14 @@
   - **Frontend:** `frontend/src/components/S7ImportModal.jsx`, `frontend/src/api/tags.js`, `frontend/src/pages/Tags.jsx` (nút **Import TIA S7**), `frontend/src/pages/Docs.jsx`, `HUONG_DAN_VAN_HANH.md`.
 - **Nội dung:**
   - Cho phép nhập hàng loạt Tag S7 trực tiếp từ file dự án xuất bởi TIA Portal hoặc dán bảng DB có cột Offset mà không cần gõ tay từng biến hay cài TIA Portal trên máy Gateway.
+
+### Đợt 20: Scan cây dự án TIA Portal (`.ap11`–`.ap21` / `.zapXX`) dạng 2 cột click chọn & Cập nhật Hướng dẫn
+- **File thêm / sửa:**
+  - **Backend:** `backend/core/tia_openness_export.ps1` (bridge PowerShell .NET 4.8 gọi `Siemens.Engineering.dll` V14–V18 và `Siemens.Engineering.Base.dll`/`Step7.dll` V21 để liệt kê tiến trình TIA đang mở, mở bản sao tạm dự án `.ap14–.ap21` bằng `Open`/`OpenWithUpgrade`, export UDTs/DBs/TagTables giữ nguyên thư mục), `backend/core/tia_project_scanner.py` (`detect_tia_environment`, `pick_local_tia_file`, `scan_tia_project`, `scan_multi_files` 2 engine Openness + Offline Fallback không sửa file gốc), `backend/core/s7_importer.py` (`parse_tia_xml_udt`, mở rộng UDT & `SW.Blocks.InstanceDB`, `build_s7_project_tree`), `backend/api/tags.py` (`GET /api/tags/s7/tia-env`, `POST /api/tags/s7/browse-local-file`, `POST /api/tags/s7/scan-project`, `POST /api/tags/s7/scan-files`), `IndustrialGateway.spec` (đóng gói kèm `tia_openness_export.ps1`).
+  - **Frontend:** `frontend/src/components/S7ImportModal.jsx` (nâng cấp thành **2-Pane Interactive TIA Project Tree Browser** giống `Scan OPC`), `frontend/src/api/tags.js`, `frontend/src/pages/Tags.jsx` (đổi nhãn nút thành **Scan TIA S7**), `frontend/src/pages/Docs.jsx`, `HUONG_DAN_VAN_HANH.md`.
+- **Nội dung:**
+  - Cho phép chọn trực tiếp file dự án TIA `.ap11–.ap21`, `.zapXX`, gắn TIA Portal đang mở hoặc nạp nhiều file `.udt + .db/.xml/.xlsx` để duyệt cây `PLC → Program Blocks / PLC Tags → DB → Struct` và click chọn từng tag hoặc `+ Thêm nhánh`.
+  - Hiển thị trạng thái quyền nhóm Windows `Siemens TIA Openness` ngay trong modal và hướng dẫn chi tiết cho từng đời TIA V11–V21 trong Web UI (`/docs`) lẫn `HUONG_DAN_VAN_HANH.md`.
 
 ---
 

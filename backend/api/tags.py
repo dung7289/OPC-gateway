@@ -16,7 +16,7 @@ import json
 import logging
 import threading
 import time
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
@@ -24,6 +24,12 @@ from pydantic import BaseModel, Field, field_validator
 
 from api.logs import add_log
 from core.s7_importer import parse_s7_bytes, parse_s7_text
+from core.tia_project_scanner import (
+    detect_tia_environment,
+    pick_local_tia_file,
+    scan_multi_files,
+    scan_tia_project,
+)
 from core.tag_engine import TagEngine, TagReadOnlyError
 from db.database import get_db
 from models.tag import DataType, TagCreate, TagResponse, TagUpdate, _check_access, _check_scale_type
@@ -1318,7 +1324,85 @@ class S7ParseResponse(BaseModel):
     optimized_warning: bool = False
     warnings: List[str] = Field(default_factory=list)
     candidates: List[S7TagCandidate] = Field(default_factory=list)
+    tree: Optional[Dict[str, Any]] = None
     message: str
+
+
+class S7ScanProjectRequest(BaseModel):
+    project_path: str = ""
+    attach_process_index: Optional[int] = Field(default=None, ge=0)
+    preferred_version: str = ""
+    scan_rate_ms: int = Field(default=100, ge=50, le=60000)
+
+
+@router.get("/s7/tia-env")
+@router.get("/s7/tia-env/")
+async def get_tia_environment():
+    """Detect installed Siemens TIA Openness versions, group permission, and open TIA windows."""
+    return await asyncio.to_thread(detect_tia_environment)
+
+
+@router.post("/s7/browse-local-file")
+@router.post("/s7/browse-local-file/")
+async def browse_local_tia_file():
+    """Open native Windows file dialog on host to pick .ap11-.ap21 / .zapXX / export file."""
+    return await asyncio.to_thread(pick_local_tia_file)
+
+
+@router.post("/s7/scan-project")
+@router.post("/s7/scan-project/")
+async def scan_tia_project_endpoint(payload: S7ScanProjectRequest):
+    """Scan a .ap11-.ap21 / .zapXX TIA Portal project or attach to a running TIA Portal instance."""
+    try:
+        return await asyncio.to_thread(
+            scan_tia_project,
+            project_path=payload.project_path,
+            attach_process_index=payload.attach_process_index,
+            preferred_version=payload.preferred_version,
+            scan_rate_ms=payload.scan_rate_ms,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.exception("TIA project scan error")
+        raise HTTPException(status_code=400, detail=f"Lỗi quét dự án TIA Portal: {exc}")
+
+
+@router.post("/s7/scan-files")
+@router.post("/s7/scan-files/")
+async def scan_s7_files_endpoint(
+    files: List[UploadFile] = File(...),
+    db_number: Optional[int] = Form(default=None),
+    default_group: str = Form(default=""),
+    scan_rate_ms: int = Form(default=100),
+):
+    """Scan uploaded .zapXX archive or multi-file TIA exports (.db, .udt, .xml, .xlsx, .sdf)."""
+    if db_number is not None and (db_number < 1 or db_number > 65535):
+        raise HTTPException(status_code=400, detail="Số DB phải nằm trong khoảng 1..65535")
+    scan_clamped = max(50, min(60000, int(scan_rate_ms)))
+
+    file_tuples = []
+    total_size = 0
+    for f in files:
+        raw = await f.read()
+        total_size += len(raw)
+        if total_size > 50 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Tổng dung lượng tải lên vượt quá 50 MB")
+        file_tuples.append((f.filename or "upload.db", raw))
+
+    try:
+        return await asyncio.to_thread(
+            scan_multi_files,
+            files=file_tuples,
+            db_number=db_number,
+            default_group=default_group,
+            scan_rate_ms=scan_clamped,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.exception("TIA multi-file scan error")
+        raise HTTPException(status_code=400, detail=f"Lỗi phân tích danh sách file TIA Portal: {exc}")
 
 
 @router.post("/s7/parse", response_model=S7ParseResponse)

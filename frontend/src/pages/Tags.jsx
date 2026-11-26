@@ -1252,14 +1252,14 @@ export default function Tags() {
             Scan OPC UA
           </button>
 
-          {/* Nút Import từ file lập trình Siemens TIA Portal (S7) */}
+          {/* Nút Duyệt & Scan cây dự án Siemens TIA Portal (S7) */}
           <button
             onClick={() => setShowS7Import(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
-            title="Import hàng loạt Tag từ file TIA Portal (.db, .xlsx, .xml) hoặc dán bảng Offset DB"
+            title="Quét cây dự án TIA Portal (.ap11–.ap21, .zapXX, .db, .xml, .xlsx) và chọn tag trực quan"
           >
             <Cpu className="w-4 h-4 text-amber-600" />
-            Import TIA S7
+            Scan TIA S7
           </button>
 
           {/* Add Tag */}

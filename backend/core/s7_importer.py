@@ -13,6 +13,7 @@ Supports:
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import re
 import xml.etree.ElementTree as ET
@@ -599,6 +600,11 @@ def _extract_udts_from_source(text: str) -> Dict[str, List[_AstField]]:
     return udts
 
 
+def extract_source_udts(text: str) -> Dict[str, List[_AstField]]:
+    """Public wrapper extracting TYPE ... END_TYPE UDT definitions from TIA/STEP7 source."""
+    return _extract_udts_from_source(text)
+
+
 def _strip_db_header_metadata(decl_section: str) -> str:
     """Strip TIA/STEP7 DB header lines (VERSION : 0.1, TITLE = ..., NON_RETAIN) without swallowing variables."""
     cleaned_lines: List[str] = []
@@ -618,13 +624,98 @@ def _strip_db_header_metadata(decl_section: str) -> str:
     return "\n".join(cleaned_lines)
 
 
+def _parse_single_db_match(
+    raw_header_id: str,
+    db_body_full: str,
+    db_number: Optional[int],
+    default_group: str,
+    scan_rate_ms: int,
+    udts: Dict[str, List[_AstField]],
+    warnings: List[str],
+) -> Tuple[Optional[int], str, List[Dict[str, Any]], List[str]]:
+    resolved_db_num = db_number
+    m_num = re.fullmatch(r"(?i)DB\s*(\d+)", _strip_quotes(raw_header_id))
+    if m_num:
+        resolved_db_num = int(m_num.group(1))
+        db_name = f"DB{resolved_db_num}"
+    else:
+        db_name = _strip_quotes(raw_header_id)
+
+    if resolved_db_num is None:
+        resolved_db_num = 1
+        warnings.append(
+            f"Source '{db_name}' không ghi số DB cụ thể — tạm dùng DB{resolved_db_num}. Hãy chỉnh đúng 'Số DB' trên màn hình nếu DB của bạn khác {resolved_db_num}."
+        )
+
+    m_begin = re.search(r"(?im)^\s*BEGIN\b", db_body_full)
+    decl_section = db_body_full[: m_begin.start()] if m_begin else db_body_full
+    decl_section = _strip_db_header_metadata(decl_section)
+    clean_lines = _strip_scl_noise_and_split(decl_section)
+
+    non_empty_code = [c for c, _ in clean_lines if c]
+    if (
+        len(non_empty_code) == 1
+        and ":" not in non_empty_code[0]
+        and _strip_quotes(non_empty_code[0].rstrip(";")).lower() in udts
+    ):
+        ast_fields = udts[_strip_quotes(non_empty_code[0].rstrip(";")).lower()]
+    else:
+        ast_fields = _parse_decl_block_lines(clean_lines)
+
+    root_group = default_group.strip() if default_group.strip() else _sanitize_group_segment(db_name)
+    candidates: List[Dict[str, Any]] = []
+    cursor = _S7OffsetCursor(db_number=resolved_db_num, warnings=list(warnings))
+    _emit_ast_fields(ast_fields, cursor, udts, root_group, scan_rate_ms, candidates)
+    return resolved_db_num, db_name, candidates, cursor.warnings
+
+
+def _parse_tia_db_source_blocks(
+    text: str,
+    db_number: Optional[int],
+    default_group: str,
+    scan_rate_ms: int,
+    extra_udts: Optional[Dict[str, List[_AstField]]] = None,
+) -> List[Dict[str, Any]]:
+    """Parse one or more DATA_BLOCK blocks from a .db/.scl/.awl source string."""
+    udts = {**(extra_udts or {}), **_extract_udts_from_source(text)}
+    matches = list(
+        re.finditer(
+            r'(?is)\bDATA_BLOCK\s+("[^"\r\n]+"|DB\s*\d+|[A-Za-z_][\w\.\-]*)(.*?)\bEND_DATA_BLOCK\b',
+            text,
+        )
+    )
+    results: List[Dict[str, Any]] = []
+    if matches:
+        for m_db in matches:
+            raw_hdr = m_db.group(1).strip()
+            body_full = m_db.group(2)
+            opt_warn = bool(re.search(r"(?i)S7_Optimized_Access\s*:=\s*'?TRUE'?", body_full))
+            warns: List[str] = []
+            if opt_warn:
+                warns.append(
+                    f"DB '{_strip_quotes(raw_hdr)}' đang bật S7_Optimized_Access := 'TRUE'. Để đọc qua S7 (snap7), trong TIA Portal hãy chuột phải DB -> Properties -> Attributes -> bỏ tích 'Optimized block access' rồi Compile lại."
+                )
+            res_num, dname, cands, out_warns = _parse_single_db_match(
+                raw_hdr, body_full, db_number, default_group, scan_rate_ms, udts, warns
+            )
+            results.append({
+                "db_number": res_num,
+                "db_name": dname or f"DB{res_num or 1}",
+                "optimized_warning": opt_warn,
+                "warnings": list(dict.fromkeys(out_warns)),
+                "candidates": cands,
+            })
+    return results
+
+
 def _parse_tia_db_source(
     text: str,
     db_number: Optional[int],
     default_group: str,
     scan_rate_ms: int,
+    extra_udts: Optional[Dict[str, List[_AstField]]] = None,
 ) -> Dict[str, Any]:
-    udts = _extract_udts_from_source(text)
+    udts = {**(extra_udts or {}), **_extract_udts_from_source(text)}
     optimized_warning = bool(re.search(r"(?i)S7_Optimized_Access\s*:=\s*'?TRUE'?", text))
 
     # Locate DATA_BLOCK ... END_DATA_BLOCK (or single block)
@@ -645,40 +736,9 @@ def _parse_tia_db_source(
     if m_db:
         raw_header_id = m_db.group(1).strip()
         db_body_full = m_db.group(2)
-        m_num = re.fullmatch(r"(?i)DB\s*(\d+)", _strip_quotes(raw_header_id))
-        if m_num:
-            resolved_db_num = int(m_num.group(1))
-            db_name = f"DB{resolved_db_num}"
-        else:
-            db_name = _strip_quotes(raw_header_id)
-
-        if resolved_db_num is None:
-            resolved_db_num = 1
-            warnings.append(
-                f"Source '{db_name}' không ghi số DB cụ thể — tạm dùng DB{resolved_db_num}. Hãy chỉnh đúng 'Số DB' trên màn hình nếu DB của bạn khác {resolved_db_num}."
-            )
-
-        # Strip BEGIN ... value assignment section at bottom of DATA_BLOCK
-        m_begin = re.search(r"(?im)^\s*BEGIN\b", db_body_full)
-        decl_section = db_body_full[: m_begin.start()] if m_begin else db_body_full
-        decl_section = _strip_db_header_metadata(decl_section)
-        clean_lines = _strip_scl_noise_and_split(decl_section)
-
-        # Support DB derived directly from a UDT: DATA_BLOCK "DB_Pump" ... "UDT_Pump" BEGIN
-        non_empty_code = [c for c, _ in clean_lines if c]
-        if (
-            len(non_empty_code) == 1
-            and ":" not in non_empty_code[0]
-            and _strip_quotes(non_empty_code[0].rstrip(";")).lower() in udts
-        ):
-            ast_fields = udts[_strip_quotes(non_empty_code[0].rstrip(";")).lower()]
-        else:
-            ast_fields = _parse_decl_block_lines(clean_lines)
-
-        root_group = default_group.strip() if default_group.strip() else _sanitize_group_segment(db_name)
-        cursor = _S7OffsetCursor(db_number=resolved_db_num, warnings=warnings)
-        _emit_ast_fields(ast_fields, cursor, udts, root_group, scan_rate_ms, candidates)
-        warnings = cursor.warnings
+        resolved_db_num, db_name, candidates, warnings = _parse_single_db_match(
+            raw_header_id, db_body_full, db_number, default_group, scan_rate_ms, udts, warnings
+        )
     elif udts:
         # File contains only UDT(s)
         if resolved_db_num is None:
@@ -730,13 +790,46 @@ def _extract_xml_comment(elem: ET.Element) -> str:
     return ""
 
 
+def parse_tia_xml_udt(text: str) -> Dict[str, ET.Element]:
+    """Extract <SW.Types.PlcStruct> UDT definitions from TIA Openness XML text."""
+    udts: Dict[str, ET.Element] = {}
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError:
+        return udts
+
+    for el in root.iter():
+        if _local_tag(el) != "SW.Types.PlcStruct":
+            continue
+        attrs = _find_child(el, "AttributeList")
+        if attrs is None:
+            continue
+        name_el = _find_child(attrs, "Name")
+        if name_el is None or not (name_el.text or "").strip():
+            continue
+        udt_key = _strip_quotes(name_el.text).lower()
+        sec_el = None
+        for node in el.iter():
+            if _local_tag(node) == "Section" and node.attrib.get("Name") in ("None", "Static"):
+                sec_el = node
+                break
+        if sec_el is not None:
+            udts[udt_key] = sec_el
+    return udts
+
+
 def _walk_openness_members(
     container: ET.Element,
     cursor: _S7OffsetCursor,
     group_path: str,
     scan_rate_ms: int,
     out: List[Dict[str, Any]],
+    xml_udts: Optional[Dict[str, ET.Element]] = None,
+    udt_stack: Optional[set] = None,
 ) -> None:
+    if udt_stack is None:
+        udt_stack = set()
+
     for child in container:
         if _local_tag(child) != "Member":
             continue
@@ -753,6 +846,7 @@ def _walk_openness_members(
             lo = int(m_arr.group(1))
             hi = int(m_arr.group(2))
             elem_type = m_arr.group(3).strip()
+            elem_udt_key = _strip_quotes(elem_type).lower()
             if hi >= lo:
                 if hi - lo + 1 > MAX_ARRAY_EXPAND:
                     hi = lo + MAX_ARRAY_EXPAND - 1
@@ -761,7 +855,28 @@ def _walk_openness_members(
                 if elem_type.lower() == "struct" or nested_members:
                     for idx in range(lo, hi + 1):
                         cursor.align_word()
-                        _walk_openness_members(child, cursor, _join_group(arr_grp, str(idx)), scan_rate_ms, out)
+                        _walk_openness_members(
+                            child,
+                            cursor,
+                            _join_group(arr_grp, str(idx)),
+                            scan_rate_ms,
+                            out,
+                            xml_udts=xml_udts,
+                            udt_stack=udt_stack,
+                        )
+                        cursor.align_word()
+                elif xml_udts and elem_udt_key in xml_udts and elem_udt_key not in udt_stack:
+                    for idx in range(lo, hi + 1):
+                        cursor.align_word()
+                        _walk_openness_members(
+                            xml_udts[elem_udt_key],
+                            cursor,
+                            _join_group(arr_grp, str(idx)),
+                            scan_rate_ms,
+                            out,
+                            xml_udts=xml_udts,
+                            udt_stack=udt_stack | {elem_udt_key},
+                        )
                         cursor.align_word()
                 else:
                     for idx in range(lo, hi + 1):
@@ -783,7 +898,30 @@ def _walk_openness_members(
 
         if m_type.lower() == "struct" or nested_members:
             cursor.align_word()
-            _walk_openness_members(child, cursor, _join_group(group_path, m_name), scan_rate_ms, out)
+            _walk_openness_members(
+                child,
+                cursor,
+                _join_group(group_path, m_name),
+                scan_rate_ms,
+                out,
+                xml_udts=xml_udts,
+                udt_stack=udt_stack,
+            )
+            cursor.align_word()
+            continue
+
+        t_key = _strip_quotes(m_type).lower()
+        if xml_udts and t_key in xml_udts and t_key not in udt_stack:
+            cursor.align_word()
+            _walk_openness_members(
+                xml_udts[t_key],
+                cursor,
+                _join_group(group_path, m_name),
+                scan_rate_ms,
+                out,
+                xml_udts=xml_udts,
+                udt_stack=udt_stack | {t_key},
+            )
             cursor.align_word()
             continue
 
@@ -800,6 +938,17 @@ def _walk_openness_members(
                 "offset_str": off_str,
                 "scan_rate_ms": scan_rate_ms,
             })
+        elif (
+            t_key
+            and t_key not in ("bool",)
+            and not re.match(r"(?i)^w?string", t_key)
+            and t_key not in _SCALAR_MAP
+            and t_key not in _SYSTEM_STRUCT_SIZES
+            and t_key not in _UNSUPPORTED_64BIT_INTS
+        ):
+            cursor.warnings.append(
+                f"Không rõ kích thước UDT/kiểu '{_strip_quotes(m_type)}' ở biến '{m_name}'."
+            )
 
 
 def _parse_tia_xml(
@@ -807,17 +956,26 @@ def _parse_tia_xml(
     db_number: Optional[int],
     default_group: str,
     scan_rate_ms: int,
+    xml_udts: Optional[Dict[str, ET.Element]] = None,
 ) -> Dict[str, Any]:
     root = ET.fromstring(text)
     warnings: List[str] = []
     candidates: List[Dict[str, Any]] = []
 
-    # 1. Check GlobalDB
+    inline_udts = parse_tia_xml_udt(text)
+    merged_udts: Dict[str, ET.Element] = {**inline_udts, **(xml_udts or {})}
+
+    # 1. Check GlobalDB or InstanceDB
     db_block = None
+    is_instance_db = False
     for el in root.iter():
-        if _local_tag(el) == "SW.Blocks.GlobalDB":
+        lt = _local_tag(el)
+        if lt == "SW.Blocks.GlobalDB":
             db_block = el
             break
+        if lt == "SW.Blocks.InstanceDB" and db_block is None:
+            db_block = el
+            is_instance_db = True
 
     if db_block is not None:
         attrs = _find_child(db_block, "AttributeList")
@@ -841,16 +999,35 @@ def _parse_tia_xml(
                 f"XML DB '{db_name}' đang đặt MemoryLayout=Optimized. Cần tắt Optimized block access trong TIA Portal để đọc qua S7."
             )
 
-        static_sec = None
-        for el in db_block.iter():
-            if _local_tag(el) == "Section" and el.attrib.get("Name") in ("Static", "None"):
-                static_sec = el
-                break
+        sections: List[ET.Element] = []
+        if is_instance_db:
+            sec_by_name: Dict[str, ET.Element] = {}
+            for el in db_block.iter():
+                if _local_tag(el) == "Section":
+                    sname = el.attrib.get("Name", "")
+                    if sname in ("Input", "Output", "InOut", "Static", "None"):
+                        sec_by_name[sname] = el
+            for sname in ("Input", "Output", "InOut", "Static", "None"):
+                if sname in sec_by_name:
+                    sections.append(sec_by_name[sname])
+        else:
+            for el in db_block.iter():
+                if _local_tag(el) == "Section" and el.attrib.get("Name") in ("Static", "None"):
+                    sections.append(el)
+                    break
 
-        if static_sec is not None:
+        if sections:
             root_grp = default_group.strip() if default_group.strip() else _sanitize_group_segment(db_name)
             cursor = _S7OffsetCursor(db_number=resolved_db, warnings=warnings)
-            _walk_openness_members(static_sec, cursor, root_grp, scan_rate_ms, candidates)
+            for sec in sections:
+                _walk_openness_members(
+                    sec,
+                    cursor,
+                    root_grp,
+                    scan_rate_ms,
+                    candidates,
+                    xml_udts=merged_udts,
+                )
             warnings = cursor.warnings
 
         return {
@@ -865,14 +1042,17 @@ def _parse_tia_xml(
 
     # 2. Check PlcTagTable
     table_name = ""
+    found_tag_table = False
     for el in root.iter():
         if _local_tag(el) == "SW.Tags.PlcTagTable":
+            found_tag_table = True
             attrs = _find_child(el, "AttributeList")
             if attrs is not None:
                 n_el = _find_child(attrs, "Name")
                 if n_el is not None and n_el.text:
                     table_name = n_el.text.strip()
         elif _local_tag(el) == "SW.Tags.PlcTag":
+            found_tag_table = True
             attrs = _find_child(el, "AttributeList")
             if attrs is None:
                 continue
@@ -897,6 +1077,42 @@ def _parse_tia_xml(
                     "offset_str": t_addr,
                     "scan_rate_ms": scan_rate_ms,
                 })
+
+    if found_tag_table:
+        return {
+            "detected_format": "tia_xml_tags",
+            "db_number": None,
+            "db_name": table_name or "PLC Tags XML",
+            "optimized_warning": False,
+            "warnings": warnings,
+            "candidates": candidates,
+            "message": f"Đã trích xuất {len(candidates)} PLC Tag từ file XML.",
+        }
+
+    # 3. Standalone Openness UDT XML (<SW.Types.PlcStruct>)
+    if inline_udts:
+        resolved_db = db_number if db_number is not None else 1
+        udt_name = next(iter(inline_udts.keys()))
+        warnings.append("File UDT XML không chứa số DB — tạm dùng DB1.")
+        root_grp = default_group.strip() if default_group.strip() else _sanitize_group_segment(udt_name)
+        cursor = _S7OffsetCursor(db_number=resolved_db, warnings=warnings)
+        _walk_openness_members(
+            inline_udts[udt_name],
+            cursor,
+            root_grp,
+            scan_rate_ms,
+            candidates,
+            xml_udts=merged_udts,
+        )
+        return {
+            "detected_format": "tia_xml_db",
+            "db_number": resolved_db,
+            "db_name": udt_name,
+            "optimized_warning": False,
+            "warnings": list(dict.fromkeys(cursor.warnings)),
+            "candidates": candidates,
+            "message": f"Đã trích xuất {len(candidates)} tag từ UDT XML ({udt_name}).",
+        }
 
     return {
         "detected_format": "tia_xml_tags",
@@ -1231,6 +1447,204 @@ def _parse_step7_sdf(
 
 
 # ---------------------------------------------------------------------------
+# Hierarchical TIA Project Tree Builder (2-Pane Browser UI)
+# ---------------------------------------------------------------------------
+
+def _make_node_id(parent_id: str, kind: str, name: str) -> str:
+    raw = f"{parent_id}/{kind}:{name}"
+    digest = hashlib.sha1(raw.encode("utf-8", errors="ignore")).hexdigest()[:10]
+    safe = re.sub(r"[^A-Za-z0-9_-]+", "_", name)[:28].strip("_") or kind
+    return f"{safe}_{digest}"
+
+
+def _ensure_tree_child(
+    parent: Dict[str, Any],
+    kind: str,
+    name: str,
+    path: str,
+    db_number: Optional[int] = None,
+    optimized: bool = False,
+) -> Dict[str, Any]:
+    for ch in parent["children"]:
+        if ch["kind"] == kind and ch["name"].lower() == name.lower() and ch.get("db_number") == db_number:
+            if optimized:
+                ch["optimized"] = True
+            return ch
+    child = {
+        "id": _make_node_id(parent["id"], kind, f"{name}_{db_number or ''}"),
+        "name": name,
+        "kind": kind,
+        "path": path,
+        "db_number": db_number,
+        "optimized": optimized,
+        "tag_count": 0,
+        "children": [],
+        "leaves": [],
+    }
+    parent["children"].append(child)
+    return child
+
+
+def _finalize_tree_node(node: Dict[str, Any]) -> int:
+    for ch in node["children"]:
+        _finalize_tree_node(ch)
+
+    if node["kind"] in ("project", "plc", "category", "folder"):
+        def _sort_key(ch: Dict[str, Any]):
+            k = ch["kind"]
+            if k == "plc":
+                return (0, 0, ch["name"].lower())
+            if k == "category":
+                cat_ord = 0 if "block" in ch["name"].lower() else (1 if "tag" in ch["name"].lower() else 2)
+                return (1, cat_ord, ch["name"].lower())
+            if k == "folder":
+                return (2, 0, ch["name"].lower())
+            dbn = ch.get("db_number")
+            return (3, dbn if dbn is not None else 999999, ch["name"].lower())
+
+        node["children"].sort(key=_sort_key)
+
+    total = len(node["leaves"]) + sum(ch["tag_count"] for ch in node["children"])
+    node["tag_count"] = total
+    return total
+
+
+def build_s7_project_tree(
+    project_name: str,
+    blocks: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """
+    Organize parsed TIA blocks / Tag Tables into a hierarchical clickable tree:
+      Project -> (PLC) -> (Category) -> (Folders) -> DB / TagTable -> (Struct/Array) -> Leaves
+    """
+    root_name = (project_name or "TIA_Project").strip() or "TIA_Project"
+    root: Dict[str, Any] = {
+        "id": "root",
+        "name": root_name,
+        "kind": "project",
+        "path": "",
+        "db_number": None,
+        "optimized": False,
+        "tag_count": 0,
+        "children": [],
+        "leaves": [],
+    }
+
+    for blk_idx, blk in enumerate(blocks):
+        plc_name = (blk.get("plc_name") or "").strip()
+        category = (blk.get("category") or "").strip()
+        folder_parts = [p.strip() for p in (blk.get("folder_parts") or []) if p and p.strip()]
+        block_name = (blk.get("block_name") or "").strip() or f"Block_{blk_idx + 1}"
+        block_kind = blk.get("block_kind") or "db"
+        db_num = blk.get("db_number")
+        optimized = bool(blk.get("optimized", False))
+        candidates = blk.get("candidates") or []
+
+        curr = root
+        curr_path = ""
+        if plc_name:
+            curr_path = _join_group(curr_path, plc_name)
+            curr = _ensure_tree_child(curr, "plc", plc_name, curr_path)
+
+        if category:
+            curr = _ensure_tree_child(curr, "category", category, curr_path)
+
+        sanitized_folders: List[str] = []
+        folder_prefix = ""
+        for fp in folder_parts:
+            seg = _sanitize_group_segment(fp)
+            sanitized_folders.append(seg)
+            folder_prefix = _join_group(folder_prefix, seg)
+            curr = _ensure_tree_child(curr, "folder", fp, folder_prefix)
+
+        block_rel_path = _join_group(folder_prefix, block_name)
+        block_node = _ensure_tree_child(
+            curr,
+            block_kind,
+            block_name,
+            block_rel_path,
+            db_number=db_num,
+            optimized=optimized,
+        )
+
+        block_base_seg = _sanitize_group_segment(block_name)
+
+        for c_idx, cand in enumerate(candidates):
+            orig_grp = (cand.get("tag_group") or "").strip()
+            if folder_prefix and orig_grp and not orig_grp.startswith(folder_prefix + "/") and orig_grp != folder_prefix:
+                full_tag_group = _join_group(folder_prefix, orig_grp)
+            else:
+                full_tag_group = orig_grp or block_rel_path
+
+            # Determine relative struct/folder segments under block_node
+            grp_parts = [p for p in orig_grp.split("/") if p]
+            if folder_prefix:
+                fp_segs = [p for p in folder_prefix.split("/") if p]
+                if len(grp_parts) >= len(fp_segs) and [x.lower() for x in grp_parts[: len(fp_segs)]] == [x.lower() for x in fp_segs]:
+                    grp_parts = grp_parts[len(fp_segs) :]
+
+            if grp_parts and grp_parts[0].lower() == block_base_seg.lower():
+                rel_parts = grp_parts[1:]
+            elif block_kind == "tag_table" and orig_grp.lower() != (block_name or "").lower():
+                rel_parts = grp_parts
+            else:
+                rel_parts = [] if (len(grp_parts) <= 1 and block_kind == "db") else grp_parts
+
+            target_node = block_node
+            sub_path = block_rel_path
+            for seg in rel_parts:
+                sub_path = _join_group(sub_path, seg)
+                target_node = _ensure_tree_child(
+                    target_node,
+                    "struct" if block_kind == "db" else "folder",
+                    seg,
+                    sub_path,
+                    db_number=db_num,
+                    optimized=optimized,
+                )
+
+            leaf = {
+                "id": f"{target_node['id']}::{blk_idx}_{c_idx}_{cand.get('address', '')}_{cand.get('name', '')}",
+                "name": cand.get("name", ""),
+                "address": cand.get("address", ""),
+                "data_type": cand.get("data_type", "float32"),
+                "tag_group": full_tag_group,
+                "description": cand.get("description", ""),
+                "tia_type": cand.get("tia_type", ""),
+                "offset_str": cand.get("offset_str", ""),
+                "scan_rate_ms": cand.get("scan_rate_ms", 100),
+                "optimized": optimized,
+            }
+            target_node["leaves"].append(leaf)
+
+    _finalize_tree_node(root)
+    return root
+
+
+def _attach_tree_to_parse_result(res: Dict[str, Any], filename: str = "") -> Dict[str, Any]:
+    fmt = res.get("detected_format", "")
+    block_kind = "tag_table" if fmt in ("tia_xml_tags", "tia_xlsx_tags", "step7_sdf") else "db"
+    category = "PLC Tags" if block_kind == "tag_table" else "Program Blocks"
+    bname = (res.get("db_name") or filename or "S7_Import").strip()
+    res["tree"] = build_s7_project_tree(
+        project_name=bname,
+        blocks=[
+            {
+                "plc_name": "",
+                "category": category,
+                "folder_parts": [],
+                "block_name": bname,
+                "block_kind": block_kind,
+                "db_number": res.get("db_number"),
+                "optimized": bool(res.get("optimized_warning", False)),
+                "candidates": res.get("candidates") or [],
+            }
+        ],
+    )
+    return res
+
+
+# ---------------------------------------------------------------------------
 # Public Entry Points
 # ---------------------------------------------------------------------------
 
@@ -1250,26 +1664,38 @@ def parse_s7_text(
     stripped = content.lstrip()
 
     if ext == "xml" or stripped.startswith("<?xml") or stripped.startswith("<Document"):
-        return _parse_tia_xml(content, db_number=db_number, default_group=default_group, scan_rate_ms=scan_rate_ms)
+        return _attach_tree_to_parse_result(
+            _parse_tia_xml(content, db_number=db_number, default_group=default_group, scan_rate_ms=scan_rate_ms),
+            filename=filename,
+        )
 
     # Check TSV copied from TIA DB Editor (tabs present in first few lines and not an SCL source block)
     sample_lines = [ln for ln in content.splitlines()[:5] if ln.strip()]
     is_scl_block = bool(re.search(r'(?im)^\s*(?:DATA_BLOCK|TYPE)\s+(?:"|\w)', content))
     if any("\t" in ln for ln in sample_lines) and not is_scl_block:
-        return _parse_tia_db_paste(content, db_number=db_number, default_group=default_group, scan_rate_ms=scan_rate_ms)
+        return _attach_tree_to_parse_result(
+            _parse_tia_db_paste(content, db_number=db_number, default_group=default_group, scan_rate_ms=scan_rate_ms),
+            filename=filename,
+        )
 
     if is_scl_block and ext not in ("sdf", "csv", "tsv"):
-        return _parse_tia_db_source(content, db_number=db_number, default_group=default_group, scan_rate_ms=scan_rate_ms)
+        return _attach_tree_to_parse_result(
+            _parse_tia_db_source(content, db_number=db_number, default_group=default_group, scan_rate_ms=scan_rate_ms),
+            filename=filename,
+        )
 
     if ext == "sdf" or ("," in content and re.search(r'"\s*[IQM]\s*\d', content, re.IGNORECASE)):
-        return _parse_step7_sdf(content, default_group=default_group, scan_rate_ms=scan_rate_ms)
+        return _attach_tree_to_parse_result(
+            _parse_step7_sdf(content, default_group=default_group, scan_rate_ms=scan_rate_ms),
+            filename=filename,
+        )
 
     # Fallback: try DB source anyway in case user pasted partial VAR/STRUCT block
     if ":" in content and not "\t" in content:
         wrapped = f'DATA_BLOCK "DB{db_number or 1}"\nVAR\n{content}\nEND_VAR\nEND_DATA_BLOCK'
         res = _parse_tia_db_source(wrapped, db_number=db_number, default_group=default_group, scan_rate_ms=scan_rate_ms)
         if res["candidates"]:
-            return res
+            return _attach_tree_to_parse_result(res, filename=filename)
 
     raise ValueError(
         "Không nhận diện được định dạng S7/TIA Portal. Hỗ trợ: file .db/.scl/.awl/.udt, file .xml/.xlsx/.sdf, hoặc bảng Copy-Paste (cột Offset) từ TIA Portal."
@@ -1290,7 +1716,10 @@ def parse_s7_bytes(
     ext = filename.lower().rsplit(".", 1)[-1] if "." in filename else ""
     if ext == "xlsx" or raw_bytes[:2] == b"PK":
         try:
-            return _parse_tia_xlsx_bytes(raw_bytes, default_group=default_group, scan_rate_ms=scan_rate_ms)
+            return _attach_tree_to_parse_result(
+                _parse_tia_xlsx_bytes(raw_bytes, default_group=default_group, scan_rate_ms=scan_rate_ms),
+                filename=filename,
+            )
         except zipfile.BadZipFile:
             raise ValueError("File .xlsx không hợp lệ hoặc bị hỏng.")
 

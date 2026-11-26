@@ -5,7 +5,7 @@ a = Analysis(
     ['backend/main.py'],
     pathex=['backend'],
     binaries=[],
-    datas=[('frontend/dist', 'frontend/dist')],
+    datas=[('frontend/dist', 'frontend/dist'), ('backend/core/tia_openness_export.ps1', 'core')],
     hiddenimports=['uvicorn.protocols.http.auto', 'uvicorn.protocols.websockets.auto', 'uvicorn.lifespans.on', 'aiosqlite', 'cryptography', 'opcua', 'pymodbus', 'snap7', 'paho.mqtt', 'comtypes', 'comtypes.client', 'comtypes.automation'],
     hookspath=[],
     hooksconfig={},

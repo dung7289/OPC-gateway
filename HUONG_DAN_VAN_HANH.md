@@ -80,10 +80,9 @@ Truy cập **Connections** → **Add Connection**:
 - **Lưu ý TIA Portal (Bắt buộc):**
   - Bật **Permit access with PUT/GET communication from remote partner** trong *Device Configuration → Protection & Security*.
   - Bỏ tích **Optimized block access** trong *Properties → Attributes* của các Data Block (DB) cần đọc/ghi.
-- **Import hàng loạt Tag trực tiếp từ TIA Portal (`/tags` → nút `Import TIA S7`):**
-  - **File Source Data Block / UDT (`.db`, `.scl`, `.awl`, `.udt`):** Trong TIA Portal chuột phải vào DB → *Generate source from blocks* → nạp file vào Gateway để tự động tính Offset (`Bool`, `Byte`, `Int`, `UInt`/`Word`, `DInt`/`DWord`/`Time`, `Real`, `LReal`, `String`, `Struct` lồng nhau và `Array`).
-  - **Bảng PLC Tags (`.xlsx`, `.xml`) & STEP 7 (`.sdf`):** Vào *PLC tags → Export* trong TIA Portal để nạp toàn bộ vùng nhớ `%I`, `%Q`, `%M`.
-  - **Dán trực tiếp từ TIA DB Editor:** Copy trực tiếp các dòng trong bảng DB (khi đã tắt Optimized và Compile để hiện cột `Offset`) rồi dán sang tab *Dán bảng DB / Source* để lấy địa chỉ S7 chính xác 100%.
+- **Scan cây dự án trực tiếp từ TIA Portal (`/tags` → nút `Scan TIA S7`):**
+  - **File dự án TIA Portal (`.ap11`–`.ap21`, `.zap11`–`.zap21`) & TIA Portal đang mở:** Chọn file dự án trên máy hoặc gắn trực tiếp vào cửa sổ TIA Portal đang mở để duyệt cây **PLC → Program Blocks / DB / Struct / PLC Tags** dạng 2 cột, tích chọn tag hoặc nhấn **+ Thêm nhánh** tương tự Scan OPC-DA/OPC-UA (xem hướng dẫn chi tiết ở **Mục 5.6**).
+  - **Nhiều file xuất (`.db`, `.scl`, `.awl`, `.udt`, `.xml`, `.xlsx`, `.sdf`) & Copy-Paste DB Editor:** Hỗ trợ đầy đủ cả khi máy Gateway không cài TIA Portal hoặc dự án dùng TIA V11–V13.
 
 ### 4.2 Modbus TCP & Modbus RTU
 - **Modbus TCP:** Nhập `Host` (IP) và `Port` (`502`).
@@ -140,6 +139,42 @@ Truy cập **Connections** → **Add Connection**:
 ### 5.5 Import / Export Excel (`.xlsx`)
 - Nút **File Mẫu** tải template chuẩn (`Connection ID`, `Tag Group (Thư mục)`, `Tag Name`, `Address`, `Data Type`, `Scan Rate (ms)`, `Description`).
 - Nút **Export Excel** xuất kèm thêm các cột mở rộng (`Access (rw/ro)`, `Unit`, `Scale Type`, `Log Enabled`) và có thể chỉnh sửa rồi **Import Excel** ngược lại.
+
+### 5.6 Quét cây dự án Siemens TIA Portal (`.ap11`–`.ap21` / `.zapXX`) — Scan TIA S7
+
+#### A. Cách sử dụng 2 cột (tương tự Scan OPC-DA / OPC-UA)
+1. Mở trang **Tags** (`/tags`) và nhấn nút **Scan TIA S7** trên thanh công cụ.
+2. Chọn **Kênh Siemens S7 đích**, có thể nhập thêm **Thư mục cha đích** (tùy chọn) và chu kỳ quét mặc định (`100ms`).
+3. Chọn nguồn dự án TIA Portal theo 1 trong 3 tab:
+   - **Tab 1 — Dự án TIA (`.ap11–.ap21` / `.zapXX`):**
+     - Nhấn **Chọn file trên máy** để mở hộp thoại Windows trỏ thẳng tới file `.apXX` gốc trong thư mục dự án (hoặc file nén `.zapXX`). Gateway luôn sao chép sang thư mục tạm để phân tích, **tuyệt đối không làm thay đổi hay nâng cấp đè lên dự án gốc**.
+     - Nếu đang mở sẵn TIA Portal trên máy Gateway, có thể bấm ngay nút **Quét TIA đang mở** ở thanh màu xanh lá để trích xuất nhanh trong 2–5 giây.
+     - Nếu thao tác từ máy khác qua trình duyệt: trong TIA Portal chọn **Project → Archive** ra file `.zapXX`, sau đó bấm **Tải file nén .zapXX**.
+   - **Tab 2 — Nhiều file xuất (`.db`, `.scl`, `.awl`, `.udt`, `.xml`, `.xlsx`, `.sdf`):**
+     - Chọn cùng lúc nhiều file (ví dụ 1 file `.udt` + nhiều file `.db` + file `.xlsx` PLC Tags). Hệ thống tự giải mã UDT xuyên file và dựng thành cây 2 cột.
+   - **Tab 3 — Dán bảng DB / Source:**
+     - Bôi đen cột `Name / Data type / Offset` trong TIA DB Editor (sau khi tắt *Optimized block access* và Compile) rồi dán vào ô text, hoặc nhấn **Nạp mẫu TIA Portal DB** để thử ngay.
+4. Trên **Cột Trái (Cây dự án TIA)**: click để chui sâu vào `PLC → Program Blocks / PLC Tags → DB → Struct / Array`, tích chọn từng biến lẻ rồi bấm **Thêm N tag đã chọn →**, hoặc bấm **+ Thêm nhánh** ngay trên dòng DB/Struct để đưa toàn bộ sang **Cột Phải**.
+5. Rà lại tên Thư mục, Tên Tag, Địa chỉ S7, Kiểu Gateway ở Cột Phải → nhấn **Import Tag vào Gateway**.
+
+#### B. Cấp quyền Siemens TIA Openness (chỉ làm 1 lần trên Windows cho `.ap14`–`.ap21`)
+- Để Gateway gọi được thư viện **Siemens TIA Portal Openness** đọc trực tiếp file `.ap14–.ap21` / `.zapXX`:
+  1. Mở **Windows PowerShell (Run as Administrator)** và chạy lệnh:
+     ```powershell
+     Add-LocalGroupMember -Group "Siemens TIA Openness" -Member "$env:USERNAME"
+     ```
+  2. **Sign out (Đăng xuất) rồi đăng nhập lại Windows** 1 lần để Windows cập nhật Token nhóm quyền.
+  3. Lần đầu quét, nếu TIA Portal hiển thị hộp thoại bảo mật *Openness access*, chọn **Yes to all** để ghi nhớ cho Gateway.
+  4. Ngay trên đầu cửa sổ **Scan TIA S7**, đèn trạng thái sẽ báo xanh **"Openness Sẵn sàng (Vxx)"** khi máy đã đủ điều kiện.
+
+#### C. Bảng tương thích phiên bản TIA Portal (V11 – V21)
+| Phiên bản TIA | Đuôi file | Cơ chế quét trực tiếp `.apXX` / `.zapXX` | Giải pháp nếu máy không dùng được Openness |
+|---|---|---|---|
+| **V16 – V21** | `.ap16`–`.ap21`, `.zap16`–`.zap21` | **Openness trực tiếp** & **Attach TIA đang mở** | Xuất `.db/.udt/.xml/.xlsx` hoặc Archive `.zapXX` |
+| **V14 – V15.1** | `.ap14`, `.ap15`, `.ap15_1` | **Openness trực tiếp / Auto-Upgrade bản sao tạm** | Xuất `.db/.udt/.xml/.xlsx` hoặc Copy-Paste DB Offset |
+| **V11 – V13** | `.ap11`, `.ap12`, `.ap13` | Siemens chưa hỗ trợ Openness API (chỉ có từ V14 trở lên); Gateway đọc tự động nếu bên trong `.zapXX` / thư mục có `External source files` | Nâng cấp dự án qua TIA V13 SP2 → V14+ **HOẶC** trong TIA V11–V13 chuột phải DB → *Generate source from blocks* (`.db`) / Export PLC Tags (`.xlsx`) / Copy-Paste bảng DB vào tab 2 & 3 |
+
+> **Lưu ý quan trọng về cấu trúc thư mục TIA Portal:** File `.ap16` chỉ là file XML chỉ mục nhỏ; toàn bộ khối DB nằm trong thư mục con `System\PEData.plf` kế bên. Vì vậy nếu mang file dự án sang máy khác, phải copy **toàn bộ thư mục chứa dự án** hoặc nén thành **`.zapXX`** (*Project → Archive*), không copy lẻ một file `.ap16`.
 
 ---
 
@@ -242,7 +277,7 @@ Dùng để sử dụng Industrial Gateway làm vùng đệm điều khiển thi
 ### 11.1 Danh sách API chính (Swagger Interactive tại `/api/docs`)
 - **Hệ thống & Tài liệu:** `GET /api/health`, `GET /api/docs` (Swagger UI), `GET /api/system/backup`, `POST /api/system/restore`, `GET/POST /api/system/autostart`.
 - **Connections:** `GET/POST /api/connections`, `PUT/DELETE /api/connections/{id}`, `POST /api/connections/{id}/reconnect`, `POST /api/connections/test`, `GET /api/connections/opc-da/servers`.
-- **Tags & Groups:** `GET/POST /api/tags`, `PUT/DELETE /api/tags/{id}`, `POST /api/tags/{id}/write`, `POST /api/tags/batch`, `POST /api/tags/bulk-update`, `POST /api/tags/find-replace`, `POST /api/tags/paste`, `GET/POST /api/tags/groups`, `PUT /api/tags/groups/rename`, `DELETE /api/tags/groups/by-name`, `POST /api/tags/groups/paste`.
+- **Tags & Groups:** `GET/POST /api/tags`, `PUT/DELETE /api/tags/{id}`, `POST /api/tags/{id}/write`, `POST /api/tags/batch`, `POST /api/tags/bulk-update`, `POST /api/tags/find-replace`, `POST /api/tags/paste`, `GET/POST /api/tags/groups`, `PUT /api/tags/groups/rename`, `DELETE /api/tags/groups/by-name`, `POST /api/tags/groups/paste`, `GET /api/tags/s7/tia-env`, `POST /api/tags/s7/browse-local-file`, `POST /api/tags/s7/scan-project`, `POST /api/tags/s7/scan-files`, `POST /api/tags/s7/parse`, `POST /api/tags/s7/parse-file`.
 - **USR-M100 Control:** `GET/POST /api/usr-m100/devices`, `PUT/DELETE /api/usr-m100/devices/{id}`, `POST /api/usr-m100/devices/{id}/buffer`, `POST /api/usr-m100/devices/{id}/publish`, `POST /api/usr-m100/devices/{id}/query`, `POST /api/usr-m100/publish-raw`, `GET/DELETE /api/usr-m100/history`.
 - **Dịch vụ & Lịch sử:** `GET/PUT /api/opcua/config`, `GET/PUT /api/forward/config`, `POST /api/forward/start|stop|test`, `GET/PUT /api/history/config`, `POST /api/history/sample-now`, `GET /api/history/query`, `DELETE /api/history/clear`, `GET/DELETE /api/logs`, `WS /ws`.
 
@@ -257,3 +292,7 @@ Dùng để sử dụng Industrial Gateway làm vùng đệm điều khiển thi
 8. **Không truy cập được `http://localhost:8000`:** Nếu cổng 8000 bị phần mềm khác chiếm trước khi mở, Gateway tự nhảy sang cổng kế tiếp (`8001..8019`). Xem log console hoặc đặt biến môi trường `GATEWAY_PORT`.
 9. **USR-M100 đã Publish nhưng thiết bị không đóng/cắt hoặc không hiện `M100 OK`:** Kiểm tra đúng **Subscribe / Control Topic** trên giao diện Web M100 (phải khác `pub_topic` để tránh lặp gói tin); thử đổi tùy chọn **Kiểu value chuỗi (`"1"` vs `1`)**; kiểm tra chính xác tên điểm `name` khai báo trong M100 (vd `DO1`, `CMD`) và đảm bảo kết nối MQTT ở `/connections` đang Online.
 10. **Đã gắn Tag vào trạm USR-M100 nhưng chưa thấy tự động gửi lệnh:** Khi mới gắn tag hoặc khởi động lại Gateway, **Auto-Sync** lưu giá trị hiện tại làm *baseline* (không gửi tràn lệnh ngay) và chỉ publish khi giá trị Tag nguồn thực sự thay đổi vượt ngưỡng `deadband` (với `Quality = Good`, nút **Auto-Sync ON**, và kết nối MQTT đang Online). Nếu cần gửi ngay giá trị hiện tại lần đầu, bỏ chọn tạm **Chỉ gửi điểm có thay đổi** rồi nhấn **Publish Lô**.
+11. **Scan file TIA Portal `.apXX` báo thiếu quyền `Siemens TIA Openness` hoặc báo `0 tag`:**
+    - Nếu thiếu quyền Openness: chạy PowerShell Admin lệnh `Add-LocalGroupMember -Group "Siemens TIA Openness" -Member "$env:USERNAME"` rồi Sign out / đăng nhập lại Windows 1 lần.
+    - Nếu báo thiếu `System\PEData.plf`: bạn chỉ copy lẻ file `.apXX` mà quên thư mục dự án bên cạnh — hãy trỏ tới thư mục dự án đầy đủ trên máy hoặc dùng *Project → Archive (.zapXX)*.
+    - Nếu dự án dùng TIA **V11 / V12 / V13**: chuyển sang tab **Nhiều file xuất** (nạp `.db/.udt/.xlsx`) hoặc nâng cấp qua TIA V13 SP2 → V14+.
